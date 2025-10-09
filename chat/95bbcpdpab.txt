@@ -1,0 +1,144 @@
+app.post("/api/auth/signup", async (req, res) => {
+  const { username, password, email, first_name, last_name } = req.body;
+
+  if (!username || !password || !email) {
+    return res
+      .status(400)
+      .json({ error: "Username, password, and email are required." });
+  }
+
+  try {
+    // Check if user already exists
+    const connection = await dbPool.getConnection();
+    const [existingUsers] = await connection.query(
+      "SELECT id FROM users WHERE username = ?",
+      [username]
+    );
+    if (existingUsers.length > 0) {
+      connection.release();
+      return res.status(409).json({ error: "Username already exists." });
+    }
+
+    // Hash password with bcrypt
+    const saltRounds = 10;
+    const hashedPassword = await bcrypt.hash(password, saltRounds);
+
+    // Generate unique user ID
+    const userId = uuidv4();
+
+    // Insert new user
+    await connection.query(
+      `INSERT INTO users (id, username, email, first_name, last_name, password_hash, password_salt)
+       VALUES (?, ?, ?, ?, ?, ?, NULL)`,
+      [
+        userId,
+        username,
+        email,
+        first_name || "",
+        last_name || "",
+        hashedPassword,
+      ]
+    );
+
+    connection.release();
+
+    res.json({ success: true, message: "User registered successfully!" });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Server error: " + err.message });
+  }
+});
+
+// --- Login endpoint with SHA-256 and bcrypt support ---
+app.post("/api/auth/login", async (req, res) => {
+  const { username, password } = req.body;
+
+  if (!username || !password) {
+    return res.status(400).json({ error: "Username and password required" });
+  }
+
+  try {
+    const connection = await dbPool.getConnection();
+    const [rows] = await connection.query(
+      "SELECT * FROM users WHERE username = ?",
+      [username]
+    );
+    connection.release();
+
+    if (rows.length === 0) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    const user = rows[0];
+    const storedHash = user.password_hash;
+    const storedSalt = user.password_salt;
+
+    let passwordMatch = false;
+
+    // Check if it's SHA-256 hash
+    const isSha256Hash = /^[a-f0-9]{64}$/i.test(storedHash);
+
+    if (isSha256Hash && storedSalt) {
+      // 🔐 SHA-256 password check
+      const hash = crypto.createHash("sha256");
+      hash.update(password + storedSalt);
+      const sha256Hash = hash.digest("hex");
+
+      if (sha256Hash === storedHash) {
+        passwordMatch = true;
+
+        // 🔁 Upgrade to bcrypt
+        const bcryptHash = await bcrypt.hash(password, 10);
+
+        const updateConn = await dbPool.getConnection();
+        await updateConn.query(
+          "UPDATE users SET password_hash = ?, password_salt = NULL WHERE id = ?",
+          [bcryptHash, user.id]
+        );
+        updateConn.release();
+
+        console.log("✅ Upgraded password to bcrypt for user:", username);
+      }
+    } else {
+      // ✅ Bcrypt check
+      passwordMatch = await bcrypt.compare(password, storedHash);
+    }
+console.log(passwordMatch)
+    if (!passwordMatch) {
+      return res.status(401).json({ error: "Invalid username or password" });
+    }
+
+    // Generate JWT token
+    const token = jwt.sign(
+      { 
+        userId: user.id, 
+        username: user.username, 
+        role: user.role 
+      },
+      JWT_SECRET,
+      { expiresIn: '24h' }
+    );
+
+    const expiresAt = Date.now() + (24 * 60 * 60 * 1000); // 24 hours from now
+
+    // Return user data and token (format expected by frontend)
+    res.json({
+      success: true,
+      message: "Login successful",
+      token,
+      expiresAt,
+      user: {
+        id: user.id,
+        username: user.username,
+        firstName: user.first_name,
+        lastName: user.last_name,
+        role: user.role,
+        email: user.email
+      },
+      bootstrap: false
+    });
+  } catch (err) {
+    console.error("Login error:", err);
+    res.status(500).json({ error: "Server error: " + err.message });
+  }
+});

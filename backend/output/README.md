@@ -1,0 +1,1 @@
+This folder contains the built output assets for the worker "event-manager-backend" generated at 2025-10-03T00:39:18.208Z.

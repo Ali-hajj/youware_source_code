@@ -1,0 +1,26 @@
+import { defineConfig } from "vite";
+import react from "@vitejs/plugin-react";
+import { youwareVitePlugin } from "@youware/vite-plugin-react";
+
+// https://vite.dev/config/
+export default defineConfig({
+  plugins: [youwareVitePlugin(), react()],
+  server: {
+    host: "127.0.0.1",
+    port: 5173,
+  },
+  build: {
+    sourcemap: true,
+    outDir: 'dist',
+    assetsDir: 'assets',
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          vendor: ['react', 'react-dom'],
+          utils: ['date-fns', 'clsx', 'zustand']
+        }
+      }
+    }
+  },
+  base: './'
+});
