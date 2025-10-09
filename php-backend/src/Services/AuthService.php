@@ -28,9 +28,10 @@ final class AuthService
         if (!password_verify($password, $user['password_hash'])) {
             return null;
         }
-
+        
+        // Remove password from returned user data
         unset($user['password_hash']);
-
+        
         return $user;
     }
 

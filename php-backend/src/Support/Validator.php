@@ -25,8 +25,13 @@ final class Validator
         }
 
         return new class($hasErrors, $messages) {
-            public function __construct(private bool $fails, private array $messages)
+            private $fails;
+            private $messages;
+            
+            public function __construct(bool $fails, array $messages)
             {
+                $this->fails = $fails;
+                $this->messages = $messages;
             }
 
             public function fails(): bool

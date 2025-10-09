@@ -8,16 +8,21 @@ const API_CONFIG = {
     baseURL: "https://staging.yourdomain.com/api",
   },
   development: {
-    baseURL: "http://localhost:3000/api",
+    baseURL: "http://localhost:8000/api",
   },
   local: {
-    baseURL: "http://localhost:3000/api",
+    baseURL: "http://localhost:8000/api",
   },
 };
 const API_ENDPOINTS = {
   users: "users",
   events: "events",
   userById: (id: string | number) => `users/${id}`,
+  authLogin: "auth/login",
+  authLogout: "auth/logout",
+  authSignup: "auth/signup",
+  authMe: "auth/me",
+  authResetPassword: "auth/reset-password",
   // Add other endpoints as needed
 };
 
@@ -71,7 +76,21 @@ interface ApiCallOptions {
 export async function apiCall(endpoint: string, options: RequestInit = {}): Promise<Response> {
   const baseURL = API_CONFIG[ENV].baseURL;
   const url = baseURL.endsWith('/') ? `${baseURL}${endpoint}` : `${baseURL}/${endpoint}`;
-  return fetch(url, options);
+  
+  // Add Authorization header if token is available
+  const token = getAuthToken();
+  const headers = new Headers(options.headers);
+  
+  if (token) {
+    headers.set('Authorization', `Bearer ${token}`);
+  }
+  
+  const requestOptions: RequestInit = {
+    ...options,
+    headers,
+  };
+  
+  return fetch(url, requestOptions);
 }
 export { API_CONFIG };
 export { API_ENDPOINTS };

@@ -1,6 +1,6 @@
 INSERT IGNORE INTO users (id, email, password_hash, first_name, last_name, role)
 VALUES
-('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2y$10$54DE4us/HZlXf2HONtl0du5Qd0dwftQNCQn8uCjr0MzRiG8jKQTPG', 'Admin', 'User', 'admin');
+('11111111-1111-1111-1111-111111111111', 'admin@example.com', '$2y$10$CpJ.MGEYy7o3L9/IlOWateGqmpI/R1d6J.8ofeZosPpZZhWd3qITi', 'Admin', 'User', 'admin');
 -- Password: Admin123!
 
 INSERT IGNORE INTO licenses (id, key_value, company_name, expires_at, seats, status)
