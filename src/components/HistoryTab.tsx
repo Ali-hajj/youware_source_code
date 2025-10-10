@@ -128,7 +128,24 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   };
 
   const formatTime = (time: string): string => {
-    const [hours, minutes] = time.split(':').map(Number);
+    console.log('🕐 formatTime called with:', time, 'type:', typeof time);
+    if (!time || typeof time !== 'string') {
+      console.log('❌ Invalid time value:', time);
+      return 'N/A';
+    }
+    
+    const timeParts = time.split(':');
+    if (timeParts.length < 2) {
+      console.log('❌ Invalid time format:', time);
+      return time; // Return original if not in expected format
+    }
+    
+    const [hours, minutes] = timeParts.map(Number);
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.log('❌ Invalid time parts:', { hours, minutes, original: time });
+      return time; // Return original if parsing fails
+    }
+    
     const period = hours >= 12 ? 'PM' : 'AM';
     const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
     return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
@@ -365,16 +382,16 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                     <div className="flex items-center gap-2 text-slate-600">
                       <Calendar className="h-4 w-4" />
                       <div className="flex-1">
-                        <button
+                        <div
                           onClick={() => handleNavigateToDate(event.date)}
-                          className="font-medium text-left hover:text-blue-600 hover:underline transition-colors flex items-center gap-1"
+                          className="font-medium text-left hover:text-blue-600 hover:underline transition-colors flex items-center gap-1 cursor-pointer"
                           title="Go to calendar date"
                         >
                           {format(new Date(event.date + 'T00:00:00'), 'MMM dd, yyyy')}
                           <ExternalLink className="h-3 w-3" />
-                        </button>
+                        </div>
                         <div className="text-slate-500">
-                          {formatTime(event.startTime)} – {formatTime(event.endTime)}
+                          {event.startTime ? formatTime(event.startTime) : 'N/A'} {event.startTime && event.endTime && '–'} {event.endTime ? formatTime(event.endTime) : 'N/A'}
                         </div>
                       </div>
                     </div>

@@ -139,10 +139,26 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
 
+    // Transform payload for PHP backend compatibility
+    const transformedPayload = {
+      ...eventData,
+      // Convert camelCase time fields to snake_case
+      start_time: eventData.startTime,
+      end_time: eventData.endTime,
+      // Flatten contact object to root level fields
+      contact_name: eventData.contact?.name || '',
+      contact_phone: eventData.contact?.phone || '',
+      contact_email: eventData.contact?.email || '',
+      // Remove the original nested fields to avoid confusion
+      startTime: undefined,
+      endTime: undefined,
+      contact: undefined,
+    };
+
     const response = await apiCall(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(eventData),
+      body: JSON.stringify(transformedPayload),
     });
 
     if (!response.ok) {
@@ -236,6 +252,15 @@ export const useEventStore = create<EventStore>((set, get) => ({
       return;
     }
 
+    // Check if user is offline - if so, skip API call
+    const authState = useAuthStore.getState();
+    if (authState.user && authState.user.id.startsWith('offline-')) {
+      console.log('👤 Offline user detected in loadEventsFromDatabase - skipping API call');
+      // For offline users, we can optionally load some sample events
+      // For now, just return without making API call
+      return;
+    }
+
     console.log('📥 Loading events from database...');
     console.log('🔗 API URL:', apiUrl);
     console.log('🔑 Using API base:', API_CONFIG.base || 'same-origin');
@@ -256,12 +281,35 @@ export const useEventStore = create<EventStore>((set, get) => ({
     const data = await response.json();
     console.log(`✅ Loaded ${data.events?.length || 0} events from database:`, data.events);
   
+    // Transform PHP backend field names to match frontend expectations
+    const transformedEvents = (data.events || []).map((event: any) => {
+      console.log('🔄 Transforming event:', event.id, 'start_time:', event.start_time, 'end_time:', event.end_time);
+      return {
+        ...event,
+        // Convert snake_case time fields to camelCase
+        startTime: event.start_time || event.startTime,
+        endTime: event.end_time || event.endTime,
+        // Convert flat contact fields to nested contact object
+        contact: {
+          name: event.contact_name || event.contact?.name || '',
+          phone: event.contact_phone || event.contact?.phone || '',
+          email: event.contact_email || event.contact?.email || '',
+        },
+        // Remove the original snake_case fields to avoid confusion
+        start_time: undefined,
+        end_time: undefined,
+        contact_name: undefined,
+        contact_phone: undefined,
+        contact_email: undefined,
+      };
+    });
+  
     // Log before and after state update
     const prevEvents = get().events;
     console.log('🔄 Previous events count:', prevEvents.length);
-    set({ events: data.events || [] });
+    set({ events: transformedEvents });
     console.log('🔄 New events count after set:', get().events.length);
-    console.log('🔄 Store state updated with events:', get().events);
+    console.log('🔄 Store state updated with transformed events:', get().events);
   },
 
   setFilters: (filters) => {

@@ -24,7 +24,20 @@ const statusColors: Record<EventStatus, string> = {
 };
 
 const formatTime = (time: string): string => {
-  const [hours, minutes] = time.split(':').map(Number);
+  if (!time || typeof time !== 'string') {
+    return 'N/A';
+  }
+  
+  const timeParts = time.split(':');
+  if (timeParts.length < 2) {
+    return time; // Return original if not in expected format
+  }
+  
+  const [hours, minutes] = timeParts.map(Number);
+  if (isNaN(hours) || isNaN(minutes)) {
+    return time; // Return original if parsing fails
+  }
+  
   const period = hours >= 12 ? 'PM' : 'AM';
   const displayHours = hours === 0 ? 12 : hours > 12 ? hours - 12 : hours;
   return `${displayHours}:${minutes.toString().padStart(2, '0')} ${period}`;
@@ -64,7 +77,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
           </span>
         </div>
         <div className="opacity-70 text-xs mt-0.5">
-          <div className="font-medium">{event.contact.name} ({event.contact.phone})</div>
+          <div className="font-medium">{event.contact?.name || 'No contact'} ({event.contact?.phone || 'N/A'})</div>
         </div>
       </div>
     );
@@ -114,9 +127,9 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
 
       {/* Contact Info */}
       <div className="text-sm text-gray-600 space-y-1">
-        <div className="font-medium">{event.contact.name}</div>
-        <div>{event.contact.phone}</div>
-        {showFullDetails && event.contact.email && (
+        <div className="font-medium">{event.contact?.name || 'No contact'}</div>
+        <div>{event.contact?.phone || 'N/A'}</div>
+        {showFullDetails && event.contact?.email && (
           <div>{event.contact.email}</div>
         )}
         {event.createdBy && (
