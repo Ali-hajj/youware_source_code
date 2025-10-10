@@ -13,6 +13,7 @@ import { CSVImportDialog } from './components/CSVImportDialog';
 import { LoginScreen } from './components/LoginScreen';
 import { useEventStore } from './store/eventStore';
 import { useAuthStore } from './store/authStore';
+import { useTokenExpirationChecker } from './utils/tokenExpirationChecker';
 import { EventStatus, PaymentStatus } from './types';
 
 type TabType = 'calendar' | 'history' | 'daily';
@@ -30,6 +31,10 @@ function App() {
   const [isDataManagementOpen, setIsDataManagementOpen] = useState(false);
   
   const { user, token, refreshProfile, logout } = useAuthStore();
+  
+  // Initialize token expiration checker
+  useTokenExpirationChecker();
+  
   const safeUser = user ?? {
     id: 'GUEST',
     username: 'guest',

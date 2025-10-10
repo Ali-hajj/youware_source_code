@@ -17,6 +17,8 @@ interface AuthStore extends AuthState {
   logout: () => Promise<void>;
   clearError: () => void;
   refreshProfile: () => Promise<void>;
+  checkTokenExpiration: () => boolean;
+  isTokenExpired: () => boolean;
 }
 
 const AUTH_STORAGE_KEY = 'eventManager_auth';
@@ -174,6 +176,31 @@ export const useAuthStore = create<AuthStore>()(
         }
       },
 
+      checkTokenExpiration() {
+        const { expiresAt, token } = get();
+        if (!token || !expiresAt) {
+          return false;
+        }
+        
+        const isExpired = Date.now() >= expiresAt;
+        if (isExpired && token !== OFFLINE_TOKEN) {
+          console.warn('Token has expired, logging out...');
+          get().logout();
+          return true;
+        }
+        
+        return false;
+      },
+
+      isTokenExpired() {
+        const { expiresAt, token } = get();
+        if (!token || !expiresAt) {
+          return true;
+        }
+        
+        return Date.now() >= expiresAt;
+      },
+
 
     }),
     {
@@ -189,7 +216,9 @@ export const useAuthStore = create<AuthStore>()(
           useAuthStore.getState().refreshProfile().catch(() => {
             useAuthStore.getState().logout();
           });
-        } else {
+        } else if (state.token && state.token !== OFFLINE_TOKEN) {
+          // Token exists but is expired, logout immediately
+          console.warn('Stored token is expired, logging out...');
           useAuthStore.getState().logout();
         }
       },
