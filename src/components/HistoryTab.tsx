@@ -449,7 +449,21 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       {event.venue} venue
                     </div>
                     <div>
-                      Updated: {format(new Date(event.updatedAt), 'MMM dd, yyyy HH:mm')}
+                      Updated: {(() => {
+                        try {
+                          if (!event.updatedAt) {
+                            return 'Unknown';
+                          }
+                          const date = new Date(event.updatedAt);
+                          if (isNaN(date.getTime())) {
+                            return 'Invalid date';
+                          }
+                          return format(date, 'MMM dd, yyyy HH:mm');
+                        } catch (error) {
+                          console.error('Date formatting error for event:', event.id, 'updatedAt:', event.updatedAt, error);
+                          return 'Invalid date';
+                        }
+                      })()}
                     </div>
                   </div>
                 </div>

@@ -82,8 +82,15 @@ export const useAuthStore = create<AuthStore>()(
           const data = await response.json();
           const { token, expiresAt, user } = data;
 
+          // Transform snake_case fields from PHP backend to camelCase for frontend
+          const transformedUser = {
+            ...user,
+            firstName: user.first_name || user.firstName,
+            lastName: user.last_name || user.lastName,
+          };
+
           set({
-            user,
+            user: transformedUser,
             token,
             expiresAt,
             isLoading: false,
@@ -152,7 +159,15 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error('Failed to fetch profile');
           }
           const data = await response.json();
-          set({ user: data.user as AppUser, error: null });
+          
+          // Transform snake_case fields from PHP backend to camelCase for frontend
+          const transformedUser = {
+            ...data.user,
+            firstName: data.user.first_name || data.user.firstName,
+            lastName: data.user.last_name || data.user.lastName,
+          };
+          
+          set({ user: transformedUser as AppUser, error: null });
         } catch (error) {
           console.warn('Failed to refresh profile:', error);
           await get().logout();

@@ -7,6 +7,7 @@ namespace App\Http;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\EventController;
 use App\Http\Controllers\LicenseController;
+use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\CorsMiddleware;
 use App\Support\JsonResponse;
@@ -34,6 +35,9 @@ final class Router
                 $this->post('/events', [EventController::class, 'store']);
                 $this->put('/events/{id}', [EventController::class, 'update']);
                 $this->delete('/events/{id}', [EventController::class, 'destroy']);
+
+                $this->get('/users', [UserController::class, 'index']);
+                $this->get('/users/{id}', [UserController::class, 'show']);
 
                 $this->get('/licenses', [LicenseController::class, 'index']);
                 $this->post('/licenses', [LicenseController::class, 'store']);

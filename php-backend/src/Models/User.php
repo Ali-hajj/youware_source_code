@@ -28,6 +28,13 @@ final class User extends BaseModel
         return $user ?: null;
     }
 
+    public function all(): array
+    {
+        $stmt = $this->db->prepare("SELECT id, email, first_name, last_name, role, created_at, updated_at FROM {$this->table} ORDER BY created_at DESC");
+        $stmt->execute();
+        return $stmt->fetchAll();
+    }
+
     public function create(array $data): array
     {
         $id = Uuid::uuid4()->toString();
