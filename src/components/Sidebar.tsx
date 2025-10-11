@@ -1,5 +1,6 @@
 import React from 'react';
 import { Plus, Calendar, Users, DollarSign, CheckCircle, Clock, XCircle, Archive, Shield } from 'lucide-react';
+import { addMonths, subMonths } from 'date-fns';
 import { useEventStore } from '../store/eventStore';
 import { VenueType, EventStatus, PaymentStatus, AppUser } from '../types';
 
@@ -33,12 +34,9 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
   };
 
   const handleMonthChange = (direction: 'prev' | 'next') => {
-    const newDate = new Date(currentDate);
-    if (direction === 'prev') {
-      newDate.setMonth(newDate.getMonth() - 1);
-    } else {
-      newDate.setMonth(newDate.getMonth() + 1);
-    }
+    const newDate = direction === 'prev' 
+      ? subMonths(currentDate, 1) 
+      : addMonths(currentDate, 1);
     onDateChange(newDate);
   };
 

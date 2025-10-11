@@ -90,7 +90,25 @@ export async function apiCall(endpoint: string, options: RequestInit = {}): Prom
     headers,
   };
   
-  return fetch(url, requestOptions);
+  const response = await fetch(url, requestOptions);
+  
+  // Handle token expiration and unauthorized responses
+  if (response.status === 401 || response.status === 403) {
+    // Import authStore dynamically to avoid circular dependency
+    const { useAuthStore } = await import('../store/authStore');
+    const authStore = useAuthStore.getState();
+    
+    // Only logout if we actually have a token (avoid logout loops)
+    if (authStore.token && authStore.token !== 'offline-bypass-token') {
+      console.warn('Token expired or unauthorized, logging out...');
+      await authStore.logout();
+      
+      // Optionally redirect to login or show a message
+      window.location.reload(); // This will trigger the login screen
+    }
+  }
+  
+  return response;
 }
 export { API_CONFIG };
 export { API_ENDPOINTS };

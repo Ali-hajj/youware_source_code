@@ -103,14 +103,26 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     setIsLoadingUsers(true);
     setUsersError(null);
     try {
+      console.log('Fetching users from:', API_ENDPOINTS.users);
       const response = await apiCall(API_ENDPOINTS.users);
+      console.log('Response status:', response.status, response.ok);
+      
       if (!response.ok) {
         const data = await response.json().catch(() => ({ error: 'Failed to fetch users' }));
+        console.error('Error response:', data);
         throw new Error(data.error || 'Failed to fetch users');
       }
+      
       const data = await response.json();
-      setUsers(data ?? []);
+      console.log('Raw response data:', data);
+      
+      // Backend returns { users: [...] }, so we need to extract the users array
+      const usersArray = data.users || data || [];
+      console.log('Users array:', usersArray);
+      
+      setUsers(usersArray);
     } catch (error) {
+      console.error('Fetch users error:', error);
       setUsersError(error instanceof Error ? error.message : 'Failed to fetch users');
     } finally {
       setIsLoadingUsers(false);

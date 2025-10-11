@@ -17,6 +17,8 @@ interface AuthStore extends AuthState {
   logout: () => Promise<void>;
   clearError: () => void;
   refreshProfile: () => Promise<void>;
+  checkTokenExpiration: () => boolean;
+  isTokenExpired: () => boolean;
 }
 
 const AUTH_STORAGE_KEY = 'eventManager_auth';
@@ -82,8 +84,15 @@ export const useAuthStore = create<AuthStore>()(
           const data = await response.json();
           const { token, expiresAt, user } = data;
 
+          // Transform snake_case fields from PHP backend to camelCase for frontend
+          const transformedUser = {
+            ...user,
+            firstName: user.first_name || user.firstName,
+            lastName: user.last_name || user.lastName,
+          };
+
           set({
-            user,
+            user: transformedUser,
             token,
             expiresAt,
             isLoading: false,
@@ -152,11 +161,44 @@ export const useAuthStore = create<AuthStore>()(
             throw new Error('Failed to fetch profile');
           }
           const data = await response.json();
-          set({ user: data.user as AppUser, error: null });
+          
+          // Transform snake_case fields from PHP backend to camelCase for frontend
+          const transformedUser = {
+            ...data.user,
+            firstName: data.user.first_name || data.user.firstName,
+            lastName: data.user.last_name || data.user.lastName,
+          };
+          
+          set({ user: transformedUser as AppUser, error: null });
         } catch (error) {
           console.warn('Failed to refresh profile:', error);
           await get().logout();
         }
+      },
+
+      checkTokenExpiration() {
+        const { expiresAt, token } = get();
+        if (!token || !expiresAt) {
+          return false;
+        }
+        
+        const isExpired = Date.now() >= expiresAt;
+        if (isExpired && token !== OFFLINE_TOKEN) {
+          console.warn('Token has expired, logging out...');
+          get().logout();
+          return true;
+        }
+        
+        return false;
+      },
+
+      isTokenExpired() {
+        const { expiresAt, token } = get();
+        if (!token || !expiresAt) {
+          return true;
+        }
+        
+        return Date.now() >= expiresAt;
       },
 
 
@@ -174,7 +216,9 @@ export const useAuthStore = create<AuthStore>()(
           useAuthStore.getState().refreshProfile().catch(() => {
             useAuthStore.getState().logout();
           });
-        } else {
+        } else if (state.token && state.token !== OFFLINE_TOKEN) {
+          // Token exists but is expired, logout immediately
+          console.warn('Stored token is expired, logging out...');
           useAuthStore.getState().logout();
         }
       },

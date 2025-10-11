@@ -13,6 +13,7 @@ import { CSVImportDialog } from './components/CSVImportDialog';
 import { LoginScreen } from './components/LoginScreen';
 import { useEventStore } from './store/eventStore';
 import { useAuthStore } from './store/authStore';
+import { useTokenExpirationChecker } from './utils/tokenExpirationChecker';
 import { EventStatus, PaymentStatus } from './types';
 
 type TabType = 'calendar' | 'history' | 'daily';
@@ -30,6 +31,10 @@ function App() {
   const [isDataManagementOpen, setIsDataManagementOpen] = useState(false);
   
   const { user, token, refreshProfile, logout } = useAuthStore();
+  
+  // Initialize token expiration checker
+  useTokenExpirationChecker();
+  
   const safeUser = user ?? {
     id: 'GUEST',
     username: 'guest',
@@ -62,11 +67,13 @@ function App() {
 
   // Load events from database after user is authenticated
   useEffect(() => {
-    if (user && user.id !== 'GUEST') {
+    if (user && user.id !== 'GUEST' && !user.id.startsWith('offline-')) {
       console.log('👤 User authenticated, loading events...');
       loadEventsFromDatabase().catch((error) => {
         console.error('Failed to load events from database:', error);
       });
+    } else if (user && user.id.startsWith('offline-')) {
+      console.log('👤 Offline user detected, skipping API call for events');
     }
   }, [user, loadEventsFromDatabase]);
 
@@ -256,7 +263,7 @@ function App() {
           </div>
 
           {/* Content Area */}
-          <div className="flex-1 overflow-hidden p-6">
+          <div className="flex-1 overflow-auto p-6">
             <div className="h-full flex flex-col space-y-6">
               {/* Search and Filter - only show for calendar tab */}
               {activeTab === 'calendar' && <SearchAndFilter />}
@@ -299,7 +306,7 @@ function App() {
               )}
 
               {/* Tab Content */}
-              <div className="flex-1 overflow-hidden">
+              <div className="flex-1 overflow-auto">
                 {activeTab === 'calendar' ? (
                   <CalendarComponent
                     currentDate={currentDate}

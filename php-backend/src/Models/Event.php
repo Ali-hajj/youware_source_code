@@ -14,7 +14,18 @@ final class Event extends BaseModel
     {
         $stmt = $this->db->prepare("SELECT * FROM {$this->table} WHERE user_id = :user_id ORDER BY date DESC, start_time ASC");
         $stmt->execute(['user_id' => $userId]);
-        return $stmt->fetchAll();
+        $events = $stmt->fetchAll();
+        
+        // Debug logging to check timestamp fields
+        error_log("Event::all() - Found " . count($events) . " events for user " . $userId);
+        if (!empty($events)) {
+            $firstEvent = $events[0];
+            error_log("Event::all() - First event data: " . json_encode($firstEvent));
+            error_log("Event::all() - created_at: " . ($firstEvent['created_at'] ?? 'NULL'));
+            error_log("Event::all() - updated_at: " . ($firstEvent['updated_at'] ?? 'NULL'));
+        }
+        
+        return $events;
     }
 
     public function find(string $id, string $userId): ?array
