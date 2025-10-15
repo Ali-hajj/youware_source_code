@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
           }}
         >
           <Plus className="h-4 w-4" />
-          New Event
+          Add New Event
         </button>
       </div>
 
