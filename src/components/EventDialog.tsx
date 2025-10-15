@@ -696,7 +696,7 @@ export const EventDialog: React.FC<EventDialogProps> = ({
         {/* Header */}
         <div className="flex items-center justify-between p-6 border-b border-gray-200">
           <h2 className="text-xl font-semibold text-gray-900">
-            {isEditMode ? 'Edit Event' : 'Create New Event'}
+            {isEditMode ? 'Edit Event' : 'Add New Event'}
           </h2>
           <button
             onClick={onClose}
