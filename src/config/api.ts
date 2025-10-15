@@ -2,10 +2,10 @@ import { APIResponse } from "../types";
 
 const API_CONFIG = {
   production: {
-    baseURL: "https://yourdomain.com/api",
+    baseURL: "https://stuntec.org/Events/api",
   },
   staging: {
-    baseURL: "https://staging.yourdomain.com/api",
+    baseURL: "https://staging.stuntec.org/api",
   },
   development: {
     baseURL: "http://localhost:8000/api",
@@ -74,41 +74,36 @@ interface ApiCallOptions {
 }
 
 export async function apiCall(endpoint: string, options: RequestInit = {}): Promise<Response> {
-  const baseURL = API_CONFIG[ENV].baseURL;
-  const url = baseURL.endsWith('/') ? `${baseURL}${endpoint}` : `${baseURL}/${endpoint}`;
-  
-  // Add Authorization header if token is available
-  const token = getAuthToken();
-  const headers = new Headers(options.headers);
-  
-  if (token) {
-    headers.set('Authorization', `Bearer ${token}`);
-  }
-  
-  const requestOptions: RequestInit = {
-    ...options,
-    headers,
-  };
-  
-  const response = await fetch(url, requestOptions);
-  
-  // Handle token expiration and unauthorized responses
-  if (response.status === 401 || response.status === 403) {
-    // Import authStore dynamically to avoid circular dependency
-    const { useAuthStore } = await import('../store/authStore');
-    const authStore = useAuthStore.getState();
-    
-    // Only logout if we actually have a token (avoid logout loops)
-    if (authStore.token && authStore.token !== 'offline-bypass-token') {
-      console.warn('Token expired or unauthorized, logging out...');
-      await authStore.logout();
-      
-      // Optionally redirect to login or show a message
-      window.location.reload(); // This will trigger the login screen
+    const baseURL = getApiBaseUrl();  // ✅ Correct
+    const url = baseURL.endsWith('/') ? `${baseURL}${endpoint}` : `${baseURL}/${endpoint}`;
+
+    const token = getAuthToken();
+    const headers = new Headers(options.headers);
+
+    if (token) {
+        headers.set('Authorization', `Bearer ${token}`);
     }
-  }
-  
-  return response;
+
+    const requestOptions: RequestInit = {
+        ...options,
+        headers,
+    };
+
+    const response = await fetch(url, requestOptions);
+
+    if (response.status === 401 || response.status === 403) {
+        const { useAuthStore } = await import('../store/authStore');
+        const authStore = useAuthStore.getState();
+
+        if (authStore.token && authStore.token !== 'offline-bypass-token') {
+            console.warn('Token expired or unauthorized, logging out...');
+            await authStore.logout();
+            window.location.reload();
+        }
+    }
+
+    return response;
 }
+
 export { API_CONFIG };
 export { API_ENDPOINTS };

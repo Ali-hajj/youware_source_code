@@ -108,7 +108,7 @@ END:VCALENDAR`;
         outlook: `https://outlook.live.com/calendar/0/addfromweb?name=${encodeURIComponent(calendarName)}&url=${encodeURIComponent(dataUrl)}`,
         google: `https://calendar.google.com/calendar/render?cid=${encodeURIComponent(dataUrl)}`,
         icalendar: dataUrl,
-        webcal: `webcal://calendar.yourdomain.com/${calendarName}.ics` // Placeholder for future live sync
+        webcal: `webcal://calendar.stuntec.org/${calendarName}.ics` // Placeholder for future live sync
       };
       
       setCalendarUrl(dataUrl);
