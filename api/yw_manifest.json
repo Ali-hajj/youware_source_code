@@ -1,0 +1,17 @@
+{
+  "apiBase": "https://backend.youware.com",
+  "ai_config": {
+    "email_generator": {
+      "model": "gemini-2.5-flash",
+      "temperature": 0.7,
+      "maxTokens": 4000,
+      "system_prompt": "You are a professional email assistant. Generate well-formatted emails for ${emailType} purposes. Include proper subject lines, professional tone, and clear formatting. Current business context: ${businessContext}."
+    },
+    "pdf_content_generator": {
+      "model": "deepseek-v3",
+      "temperature": 0.3,
+      "maxTokens": 6000,
+      "system_prompt": "You are a professional invoice and document generator. Create detailed, properly formatted content for ${documentType} documents. Include all necessary business details, proper formatting, and professional presentation. Business info: ${businessInfo}."
+    }
+  }
+}

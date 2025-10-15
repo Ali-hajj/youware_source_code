@@ -22,7 +22,7 @@ final class Router
 
     public function registerRoutes(): void
     {
-        $this->group('/api', function (): void {
+        $this->group('/Events/api', function (): void {
             $this->get('/health', [AuthController::class, 'health']);
             $this->post('/auth/signup', [AuthController::class, 'signup']);
             $this->post('/auth/login', [AuthController::class, 'login']);
