@@ -2,7 +2,7 @@
 
 const API_CONFIG = {
   production: {
-    baseURL: "http://localhost:8000/Events/api",
+    baseURL: "https://stuntec.org/Events/api",
   },
   staging: {
     baseURL: "https://staging.stuntec.org/api",
