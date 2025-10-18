@@ -1,8 +1,8 @@
-import { APIResponse } from "../types";
+// import { APIResponse } from "../types";
 
 const API_CONFIG = {
   production: {
-    baseURL: "https://stuntec.org/Events/api",
+    baseURL: "http://localhost:8000/Events/api",
   },
   staging: {
     baseURL: "https://staging.stuntec.org/api",
@@ -18,6 +18,8 @@ const API_ENDPOINTS = {
   users: "users",
   events: "events",
   userById: (id: string | number) => `users/${id}`,
+  eventsById: (id: string | number) => `events/${id}`,
+  eventsBulk: '/events/bulk',
   authLogin: "auth/login",
   authLogout: "auth/logout",
   authSignup: "auth/signup",

@@ -36,8 +36,12 @@ final class Router
                 $this->put('/events/{id}', [EventController::class, 'update']);
                 $this->delete('/events/{id}', [EventController::class, 'destroy']);
 
+                $this->post('/users', [UserController::class, 'store']);
                 $this->get('/users', [UserController::class, 'index']);
                 $this->get('/users/{id}', [UserController::class, 'show']);
+                $this->put('/users/{id}', [UserController::class, 'update']);
+                $this->delete('/users/{id}', [UserController::class, 'destroy']);
+
 
                 $this->get('/licenses', [LicenseController::class, 'index']);
                 $this->post('/licenses', [LicenseController::class, 'store']);

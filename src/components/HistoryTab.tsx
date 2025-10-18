@@ -65,7 +65,7 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
   const historyEvents = events.filter(event => {
     // Apply local filters (which now sync with external filters)
     if (localStatusFilter !== 'all' && event.status !== localStatusFilter) return false;
-    if (localPaymentFilter !== 'all' && event.paymentStatus !== localPaymentFilter) return false;
+    if (localPaymentFilter !== 'all' && event['payment_status'] !== localPaymentFilter) return false;
     
     return true; // Show all events when filters are 'all'
   });

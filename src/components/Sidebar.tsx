@@ -67,7 +67,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
               {activeUser.id === 'BOOTSTRAP' ? 'Bootstrap Session' : `${activeUser.firstName} ${activeUser.lastName}`}
             </div>
             <div className="text-slate-400 font-mono text-[11px]">
-              {activeUser.id}
+              {/* {activeUser.id} */}
             </div>
             <p className="mt-2 text-slate-400">
               Manage bookings, license verification, and performance insights from one control center.
@@ -90,7 +90,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
           }}
         >
           <Plus className="h-4 w-4" />
-          Add New Event
+            New Event
         </button>
       </div>
 

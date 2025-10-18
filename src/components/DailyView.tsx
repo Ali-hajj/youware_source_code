@@ -77,7 +77,7 @@ export const DailyView: React.FC<DailyViewProps> = ({
           className="flex items-center gap-2 px-4 py-2 bg-amber-600 text-white rounded-md hover:bg-amber-700 transition-colors shadow-sm"
         >
           <Plus className="h-4 w-4" />
-          Add New Event
+            New Event
         </button>
       </div>
 

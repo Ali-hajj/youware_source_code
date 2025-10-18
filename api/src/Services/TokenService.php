@@ -22,6 +22,7 @@ final class TokenService
                 'email' => $user['email'],
                 'first_name' => $user['first_name'] ?? null,
                 'last_name' => $user['last_name'] ?? null,
+                'phone' => $user['phone'],
                 'role' => $user['role'] ?? 'admin',
             ],
         ];

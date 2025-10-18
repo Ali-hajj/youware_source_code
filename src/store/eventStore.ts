@@ -366,13 +366,13 @@ export const useEventStore = create<EventStore>((set, get) => ({
   getFilteredEvents: () => {
     const { events, filters } = get();
     return events.filter((event) => {
-      if (filters.venue && event.venue !== filters.venue && event.venueId !== filters.venue) {
+      if (filters.venue && event.venue !== filters.venue && event['venue_id'] !== filters.venue) {
         return false;
       }
       if (filters.status && event.status !== filters.status) {
         return false;
       }
-      if (filters.paymentStatus && event.paymentStatus !== filters.paymentStatus) {
+      if (filters['payment_status'] && event['payment_status'] !== filters['payment_status']) {
         return false;
       }
       if (filters.searchQuery) {
@@ -396,11 +396,11 @@ export const useEventStore = create<EventStore>((set, get) => ({
     const events = get().getFilteredEvents();
     return events.reduce((stats, event) => {
       stats[event.status]++;
-      stats[event.paymentStatus]++;
+      stats[event['payment_status']]++;
       const total = event.pricing?.total || 0;
       const paid = event.pricing?.amountPaid || 0;
       const balance = event.pricing?.remainingBalance || 0;
-      if (event.paymentStatus === 'paid') {
+      if (event['payment_status'] === 'paid') {
         stats.totalRevenue += total;
       } else {
         stats.totalRevenue += paid;
@@ -433,7 +433,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
     if (event.color) {
       return event.color;
     }
-    const venue = get().getVenueById(event.venueId || event.venue);
+    const venue = get().getVenueById(event['venue_id'] || event.venue);
     return venue?.color || '#6b7280';
   },
 }));

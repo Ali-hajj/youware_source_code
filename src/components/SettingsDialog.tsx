@@ -76,6 +76,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     phone: '',
     email: '',
   });
+  
   const [storeName, setStoreName] = useState(settings.storeName);
   const [storeEmail, setStoreEmail] = useState(settings.storeEmail || '');
   const [storePhone, setStorePhone] = useState(settings.storePhone || '');
@@ -449,8 +450,6 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
   };
 
   const handleEditUser = (user: AppUser) => {
-    console.log('USER DATAA',user);
-    
     setEditedUser(user);
     setIsEditingUser(true);
     setCreatingUser(false);
@@ -458,8 +457,8 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
       username: user.username,
       password: '',
       role: user.role,
-      firstName: user["first_name"],
-      lastName: user["last_name"],
+      firstName: user.firstName,
+      lastName: user.lastName,
       phone: user.phone,
       email: user.email,
     });
@@ -468,17 +467,22 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
   const handleSubmitUser = async (event: React.FormEvent) => {
     event.preventDefault();
     setUsersError(null);
-
     try {
       if (isEditingUser && editedUser) {
         const response = await apiCall(API_ENDPOINTS.userById(editedUser.id), {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            ...userForm,
-            password: userForm.password ? userForm.password : undefined,
+            id: editedUser.id,
+            email: userForm.email,
+            first_name: userForm.firstName,
+            last_name: userForm.lastName,
+            phone: userForm.phone,
+            role: userForm.role,
+            ...(userForm.password?.trim() && { password: userForm.password }),
           }),
         });
+        
         if (!response.ok) {
           const data = await response.json().catch(() => ({ error: 'Failed to update user' }));
           throw new Error(data.error || 'Failed to update user');
@@ -508,7 +512,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     setUsersError(null);
 
     try {
-      const response = await apiCall(API_ENDPOINTS.usersById(id), {
+      const response = await apiCall(API_ENDPOINTS.userById(id), {
         method: 'DELETE',
       });
 
