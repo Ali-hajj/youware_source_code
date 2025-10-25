@@ -10,7 +10,7 @@ export const LoginScreen: React.FC = () => {
     import.meta.env.VITE_AUTH_BYPASS === 'true' ||
     (typeof window !== 'undefined' && Boolean((window as any)?.ywConfig?.authBypass));
   const [mode, setMode] = useState<'login' | 'signup' | 'reset'>('login');
-  const [username, setUsername] = useState('');
+  // const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [email, setEmail] = useState('');
   const [firstName, setFirstName] = useState('');
@@ -26,7 +26,7 @@ export const LoginScreen: React.FC = () => {
 
     try {
       if (mode === 'login') {
-        await login({ username, password });
+        await login({ email, password });
         // Load events immediately after successful login
         console.log('🔄 Login successful, loading events...');
         loadEventsFromDatabase().catch((error) => {
@@ -43,14 +43,14 @@ export const LoginScreen: React.FC = () => {
   };
 
   const handleSignup = async () => {
-    if (!username || !password || !email) {
-      throw new Error('Username, password, and email are required');
+    if (!password || !email) {
+      throw new Error('Email and password are required');
     }
 
     const response = await fetch('/api/auth/signup', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username, password, email, first_name: firstName, last_name: lastName }),
+      body: JSON.stringify({ email, password, first_name: firstName, last_name: lastName }),
     });
 
     if (!response.ok) {
@@ -108,7 +108,7 @@ export const LoginScreen: React.FC = () => {
                   if (event.detail === 3 && bypassEnabled) {
                     setLocalError(null);
                     clearError();
-                    forceLogin({ username: 'admin' });
+                    forceLogin({ email: 'admin' });
                     setSuccessMessage('Bypass mode enabled. You are logged in as admin.');
                     // Load events after bypass login
                     console.log('🔄 Bypass login activated, loading events...');
@@ -144,17 +144,17 @@ export const LoginScreen: React.FC = () => {
                 ) : (
                   <>
                     <div className="space-y-2">
-                      <label className="text-sm font-medium text-slate-700" htmlFor="username">
-                        Username
+                      <label className="text-sm font-medium text-slate-700" htmlFor="email">
+                        Email
                       </label>
                       <input
-                        id="username"
+                        id="email"
                         type="text"
-                        value={username}
-                        onChange={(event) => setUsername(event.target.value)}
+                        value={email}
+                        onChange={(event) => setEmail(event.target.value)}
                         className="w-full px-4 py-2.5 rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-amber-500 focus:border-transparent bg-white text-slate-800"
-                        placeholder="Enter your username"
-                        autoComplete="username"
+                        placeholder="Enter your email"
+                        autoComplete="email"
                         required
                       />
                     </div>
@@ -289,7 +289,7 @@ export const LoginScreen: React.FC = () => {
                       onClick={() => {
                         setLocalError(null);
                         clearError();
-                        forceLogin({ username: username || 'admin' });
+                        forceLogin({ email: email || 'admin' });
                         setSuccessMessage('Bypass mode enabled. You are logged in as admin.');
                         // Load events after bypass login
                         console.log('🔄 Manual bypass activated, loading events...');

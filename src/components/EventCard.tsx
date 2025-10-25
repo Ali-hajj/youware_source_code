@@ -45,16 +45,18 @@ const formatTime = (time: string): string => {
 
 export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, onClick, showFullDetails = false }) => {
   const { getEventColor, getVenueById } = useEventStore();
-  const startTime = formatTime(event.startTime);
-  const endTime = formatTime(event.endTime);
+  
+  const startTime = event.startTime || event['start_time'];
+  const endTime = event.endTime || event['end_time'];
   const eventColor = getEventColor(event);
   const venue = getVenueById(event.venueId || event.venue);
-
+  const eventContactName = event['contact_name']
+  const eventContactPhone = event['contact_phone']
   const handleClick = (e: React.MouseEvent) => {
     e.stopPropagation();
     onClick?.();
   };
-
+  
   if (compact) {
     return (
       <div
@@ -72,12 +74,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
       >
         <div className="flex items-center gap-1 mb-0.5">
           <span className={`font-medium truncate ${event.status === 'closed' ? 'line-through' : ''}`}>
-            {event.title} ({startTime} - {endTime})
+            {event.title} ( {formatTime(startTime) } - {formatTime(endTime)})
             {event.status === 'cancelled' && ' (Cancelled)'}
           </span>
         </div>
         <div className="opacity-70 text-xs mt-0.5">
-          <div className="font-medium">{event.contact?.name || 'No contact'} ({event.contact?.phone || 'N/A'})</div>
+          <div className="font-medium">{event.contact?.name || eventContactName} ({event.contact?.phone || eventContactPhone})</div>
         </div>
       </div>
     );

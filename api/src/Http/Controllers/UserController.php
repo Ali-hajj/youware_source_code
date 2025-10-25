@@ -72,11 +72,11 @@ final class UserController
         return JsonResponse::success($transformedUser);
     }
 
-
-
     public function update(array $params): array
     {
-        $userId = $params['routeParams']['id'] ?? null;
+        // $userId = $params['routeParams']['id'] ?? null;
+        $userId = $params['user']['id'] ?? null; // get from authenticated user session/token
+
         if (!$userId) {
             return JsonResponse::error('Missing user id', 400);
         }
@@ -100,6 +100,29 @@ final class UserController
         return JsonResponse::success(['message' => 'User updated successfully']);
     }
 
+    // public function store(array $params): array
+    // {
+    //     $input = json_decode(file_get_contents('php://input'), true) ?? [];
+
+    //     $payload = [
+    //         'username'   => $input['username'] ?? null,
+    //         'password'   => $input['password'] ?? null,
+    //         'role'       => $input['role'] ?? null,
+    //         'first_name' => $input['firstName'] ?? null,
+    //         'last_name'  => $input['lastName'] ?? null,
+    //         'phone'      => $input['phone'] ?? null,
+    //         'email'      => $input['email'] ?? null,
+    //     ];
+
+    //     $validation = Validator::validate($payload, $this->rules());
+    //     if ($validation->fails()) {
+    //         return JsonResponse::error('Validation failed', 422, $validation->messages());
+    //     }
+
+    //     $user = $this->users->create($payload, $params['user']['id']);
+
+    //     return JsonResponse::success(['user' => $user], 201);
+    // }
     public function store(array $params): array
     {
         $input = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -114,26 +137,65 @@ final class UserController
             'email'      => $input['email'] ?? null,
         ];
 
+        // 1️⃣ Validation
         $validation = Validator::validate($payload, $this->rules());
         if ($validation->fails()) {
             return JsonResponse::error('Validation failed', 422, $validation->messages());
         }
 
+        // 2️⃣ Role mapping (DB only allows 'admin' and 'staff')
+        $roleMap = [
+            'admin'    => 'admin',   // admin can be created as admin
+            'manager'  => 'staff',
+            'host'     => 'staff',
+            'operator' => 'staff',
+        ];
+        $payload['role'] = $roleMap[strtolower($payload['role'] ?? '')] ?? 'staff';
+
+        // 3️⃣ Ensure password exists
+        if (empty($payload['password'])) {
+            $payload['password'] = bin2hex(random_bytes(4)); // 8-char random password
+        }
+
+        // 4️⃣ Hash password (store in 'password_hash')
+        $payload['password_hash'] = password_hash($payload['password'], PASSWORD_BCRYPT);
+
+        // 5️⃣ Create user
         $user = $this->users->create($payload, $params['user']['id']);
 
-        return JsonResponse::success(['user' => $user], 201);
+        // 6️⃣ Return user + password
+        return JsonResponse::success([
+            'user'     => $user,
+            'password' => $payload['password'], // admin can share this
+        ], 201);
     }
 
+
+    // private function rules(bool $isUpdate = false): array
+    // {
+    //     return [
+    //         'email'      => v::email()->notEmpty(),
+    //         'first_name' => v::stringType()->notEmpty(),
+    //         'last_name'  => v::stringType()->notEmpty(),
+    //         'phone'      => v::optional(v::phone()),
+    //         'role'       => v::in(['admin', 'manager', 'host', 'operator'])->notEmpty(), // ✅ allow all admin roles
+    //     ];
+    // }
     private function rules(bool $isUpdate = false): array
-    {
-        return [
-            'email' => v::email()->notEmpty(),
-            'first_name' => v::stringType()->notEmpty(),
-            'last_name' => v::stringType()->notEmpty(),
-            'phone' => v::optional(v::phone()),
-            'role' => v::in(['user', 'admin'])->notEmpty(),
-        ];
-    }
+{
+    return [
+        'email'      => $isUpdate ? v::optional(v::email()) : v::email()->notEmpty(),
+        'first_name' => $isUpdate ? v::optional(v::stringType()) : v::stringType()->notEmpty(),
+        'last_name'  => $isUpdate ? v::optional(v::stringType()) : v::stringType()->notEmpty(),
+        'phone'      => v::optional(v::phone()),
+        'role'       => $isUpdate
+                        ? v::optional(v::in(['admin', 'manager', 'host', 'operator', 'staff']))
+                        : v::in(['admin', 'manager', 'host', 'operator', 'staff'])->notEmpty(),
+    ];
+}
+
+
+
     public function destroy(array $params): array
     {
         $id = $params['routeParams']['id'] ?? null;

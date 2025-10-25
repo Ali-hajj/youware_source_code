@@ -12,8 +12,8 @@ interface AuthState {
 }
 
 interface AuthStore extends AuthState {
-  login: (credentials: { username?: string; password?: string }) => Promise<void>;
-  forceLogin: (options?: { username?: string }) => void;
+  login: (credentials: { email?: string; password?: string }) => Promise<void>;
+  forceLogin: (options?: { email?: string }) => void;
   logout: () => Promise<void>;
   clearError: () => void;
   refreshProfile: () => Promise<void>;
@@ -27,9 +27,9 @@ const fetchWithAuth = async (input: string, init?: RequestInit) => {
   return apiCall(input, init);
 };
 
-const createOfflineUser = (username = 'admin'): AppUser => ({
+const createOfflineUser = (email = 'admin'): AppUser => ({
   id: `offline-${Date.now()}`,
-  username,
+  username:'',
   role: 'admin',
   firstName: 'Offline',
   lastName: 'Access',
@@ -52,9 +52,9 @@ export const useAuthStore = create<AuthStore>()(
       error: null,
 
 
-      async login({ username, password }) {
+      async login({ email, password }) {
         const fallbackLogin = (name?: string) => {
-          const offlineUser = createOfflineUser(name || username || 'admin');
+          const offlineUser = createOfflineUser(name || email || 'admin');
           const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
           set({
             user: offlineUser,
@@ -73,7 +73,7 @@ export const useAuthStore = create<AuthStore>()(
             headers: {
               'Content-Type': 'application/json',
             },
-            body: JSON.stringify({ email: username, password }),
+            body: JSON.stringify({ email: email, password }),
           });
 
           if (!response.ok) {
@@ -103,12 +103,12 @@ export const useAuthStore = create<AuthStore>()(
           const typedError = error instanceof Error ? error : new Error('Login failed');
 
           if (isNetworkError || typedError.message.includes('Failed to fetch')) {
-            const offlineUser = fallbackLogin(username);
+            const offlineUser = fallbackLogin(email);
             console.warn('Login fell back to offline mode for user:', offlineUser.username);
             return;
           }
 
-          if (username === 'admin' && password === 'admin') {
+          if (email === 'admin' && password === 'admin') {
             fallbackLogin('admin');
             return;
           }
@@ -122,7 +122,7 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       forceLogin(options) {
-        const offlineUser = createOfflineUser(options?.username);
+        const offlineUser = createOfflineUser(options?.email);
         const expiresAt = Date.now() + 2 * 60 * 60 * 1000;
         set({
           user: offlineUser,

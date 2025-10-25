@@ -100,6 +100,26 @@ export interface Event {
   createdBy?: EventUserSummary;
   updatedBy?: EventUserSummary;
 }
+// types for Guests and Menu
+export interface Guest {
+  id: string;
+  name: string;
+  email?: string;
+  phone?: string;
+  status?: 'invited' | 'confirmed' | 'declined';
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+export interface Menu {
+  id: string;
+  name: string;
+  description?: string;
+  price?: number;
+  category?: string; // 'starter', 'main', 'dessert', etc.
+  createdAt?: string;
+  updatedAt?: string;
+}
 
 export interface DateRange {
   start: string;
@@ -137,6 +157,8 @@ export interface PaymentAnalytics {
 }
 
 export interface AppSettings {
+  // length(arg0: string, length: any): unknown;
+  id: number | null;  
   storeName: string;
   storeEmail?: string;
   storePhone?: string;

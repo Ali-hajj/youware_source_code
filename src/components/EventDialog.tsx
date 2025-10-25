@@ -90,7 +90,7 @@ export const EventDialog: React.FC<EventDialogProps> = ({
       if (event) {
         
         // Edit mode - populate with existing event data
-        setFormData({
+       setFormData({
           title: event.title,
           venue: event.venue,
           venueId: event.venueId || event.venue,
@@ -100,8 +100,14 @@ export const EventDialog: React.FC<EventDialogProps> = ({
           endTime: event.endTime,
           status: event.status,
           paymentStatus: event.paymentStatus,
-          paymentMethod: event.paymentMethod,
-          contact: event.contact,
+          paymentMethod: event.paymentMethod as PaymentMethod,
+          // event.contact ?? { name: event['contact_name'], phone: ['contact_phone'], email: ['contact_email'] }, // <-- add this fallback
+          // contact: event.contact ?? { name: '', phone: '', email: '' }, // <-- add this fallback
+          contact: event.contact ?? {
+            name: event['contact_name'],
+            phone: event['contact_phone'],
+            email: event['contact_email']
+          },
           pricing: event.pricing || initialPricingData,
           notes: event.notes || '',
         });
@@ -936,7 +942,6 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                   <option value="closed">Closed</option>
                 </select>
               </div>
-
               {/* Payment Status */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -970,7 +975,6 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                   </select>
                 </div>
               )}
-
               {/* Contact Name */}
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
@@ -1466,7 +1470,6 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                     ))}
                   </div>
                 )}
-                
                 {/* Deposit Summary */}
                 <div className="bg-green-50 rounded-lg p-4 border border-green-200">
                   <div className="grid grid-cols-3 gap-4 text-center">

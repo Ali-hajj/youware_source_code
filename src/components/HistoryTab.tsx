@@ -174,7 +174,8 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
       onNavigateToDate(date);
     }
   };
-
+  console.log('EVENT',historyEvents);
+  
   if (historyEvents.length === 0) {
     return (
       <div className="flex-1 flex flex-col">
@@ -367,11 +368,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         {event.status}
                       </span>
                       <span className={`px-2 py-1 rounded-md text-xs font-medium border ${
-                        event.paymentStatus === 'paid' 
+                        event["payment_status"] === 'paid' 
                           ? 'bg-green-50 text-green-700 border-green-200'
                           : 'bg-orange-50 text-orange-700 border-orange-200'
                       }`}>
-                        {event.paymentStatus}
+                        {event["payment_status"]}
                       </span>
                     </div>
                   </div>
@@ -395,12 +396,11 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                         </div>
                       </div>
                     </div>
-
                     {/* Contact Info */}
                     <div className="text-slate-600 space-y-1">
-                      <div className="font-medium">{event.contact.name}</div>
-                      <div className="text-slate-500">{event.contact.phone}</div>
-                      <div className="text-slate-500">{event.contact.email}</div>
+                      <div className="font-medium">{event['contact_name']}</div>
+                      <div className="text-slate-500">{event['contact_phone']}</div>
+                      <div className="text-slate-500">{event['contact_email']}</div>
                       {event.createdBy && (
                         <div className="text-xs text-slate-500">
                           Added by <span className="font-semibold text-slate-700">{event.createdBy.displayName || event.createdBy.userId}</span>
@@ -420,13 +420,13 @@ export const HistoryTab: React.FC<HistoryTabProps> = ({
                       <DollarSign className="h-4 w-4" />
                       <div>
                         <div className={`font-medium ${
-                          event.paymentStatus === 'paid' ? 'text-green-700' : 'text-orange-700'
+                          event["payment_status"] === 'paid' ? 'text-green-700' : 'text-orange-700'
                         }`}>
-                          {event.paymentStatus === 'paid' ? 'Paid' : 'Unpaid'}
+                          {event["payment_status"] === 'paid' ? 'Paid' : 'Unpaid'}
                         </div>
-                        {event.paymentMethod && event.paymentStatus === 'paid' && (
+                        {event["payment_method"] && event["payment_status"] === 'paid' && (
                           <div className="text-slate-500 capitalize">
-                            {event.paymentMethod.replace('_', ' ')}
+                            {event["payment_method"].replace('_', ' ')}
                           </div>
                         )}
                       </div>

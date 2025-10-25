@@ -38,27 +38,53 @@ final class User extends BaseModel
         return $stmt->fetchAll();
     }
 
+    // public function create(array $data): array
+    // {
+    //     $id = Uuid::uuid4()->toString();
+
+    //     $stmt = $this->db->prepare("
+    //         INSERT INTO {$this->table} (id, email, password_hash, first_name, last_name, phone, role)
+    //         VALUES (:id, :email, :password_hash, :first_name, :last_name, :phone , :role)
+    //     ");
+
+    //     $stmt->execute([
+    //         'id'            => $id,
+    //         'email'         => $data['email'],
+    //         'password_hash' => password_hash($data['password'], PASSWORD_BCRYPT),
+    //         'first_name'    => $data['first_name'] ?? null,
+    //         'last_name'     => $data['last_name'] ?? null,
+    //         'phone'         => $data['phone'] ?? null,
+    //         'role'          => $data['role'] ?? 'admin',
+    //     ]);
+
+    //     return $this->findByIdWithHash($id);
+    // }
     public function create(array $data): array
-    {
-        $id = Uuid::uuid4()->toString();
+{
+    $id = Uuid::uuid4()->toString();
 
-        $stmt = $this->db->prepare("
-            INSERT INTO {$this->table} (id, email, password_hash, first_name, last_name, phone, role)
-            VALUES (:id, :email, :password_hash, :first_name, :last_name, :phone , :role)
-        ");
+    $stmt = $this->db->prepare("
+        INSERT INTO {$this->table} 
+        (id, email, password_hash, first_name, last_name, phone, role, created_at, updated_at)
+        VALUES 
+        (:id, :email, :password_hash, :first_name, :last_name, :phone, :role, :created_at, :updated_at)
+    ");
 
-        $stmt->execute([
-            'id'            => $id,
-            'email'         => $data['email'],
-            'password_hash' => password_hash($data['password'], PASSWORD_BCRYPT),
-            'first_name'    => $data['first_name'] ?? null,
-            'last_name'     => $data['last_name'] ?? null,
-            'phone'         => $data['phone'] ?? null,
-            'role'          => $data['role'] ?? 'admin',
-        ]);
+    $stmt->execute([
+        'id'            => $id,
+        'email'         => $data['email'],
+        'password_hash' => $data['password_hash'], // already hashed in controller
+        'first_name'    => $data['first_name'] ?? '',
+        'last_name'     => $data['last_name'] ?? '',
+        'phone'         => $data['phone'] ?? '',
+        'role'          => $data['role'] ?? 'staff',
+        'created_at'    => $data['created_at'] ?? date('Y-m-d H:i:s'),
+        'updated_at'    => $data['updated_at'] ?? date('Y-m-d H:i:s'),
+    ]);
 
-        return $this->findByIdWithHash($id);
-    }
+    return $this->findByIdWithHash($id);
+}
+
 
     private function findByIdWithHash(string $id): array
     {
@@ -84,7 +110,10 @@ final class User extends BaseModel
         $currentUser = $stmt->fetch(PDO::FETCH_ASSOC);
 
         error_log("Current DB user data: " . print_r($currentUser, true));
-
+        if (isset($mappedData['password'])) {
+            $mappedData['password_hash'] = password_hash($mappedData['password'], PASSWORD_BCRYPT);
+            unset($mappedData['password']);
+        }
         if (!$currentUser) {
             error_log("User not found with id $id");
             return false;

@@ -52,7 +52,11 @@ final class AuthController
             'user'  => $user,
         ], 201);
     }
-
+    public function logout(): array
+    {
+        // If using JWT without server-side storage, just return success
+        return JsonResponse::success(['message' => 'Logged out successfully']);
+    }
     public function login(): array
     {
         $payload = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -103,7 +107,7 @@ final class AuthController
 
         return JsonResponse::success(['message' => 'Password updated']);
     }
-
+    
     public function me(array $params): array
     {
         return JsonResponse::success([

@@ -25,6 +25,10 @@ const API_ENDPOINTS = {
   authSignup: "auth/signup",
   authMe: "auth/me",
   authResetPassword: "auth/reset-password",
+  settings: 'settings',       // GET current settings
+  updateSettings: 'settings',
+  venues: "venues",
+  venueById: (id: string | number) => `venues/${id}`,
   // Add other endpoints as needed
 };
 
@@ -80,6 +84,7 @@ export async function apiCall(endpoint: string, options: RequestInit = {}): Prom
     const url = baseURL.endsWith('/') ? `${baseURL}${endpoint}` : `${baseURL}/${endpoint}`;
 
     const token = getAuthToken();
+    console.log('apiCall URL:', url, 'Token:', token);
     const headers = new Headers(options.headers);
 
     if (token) {

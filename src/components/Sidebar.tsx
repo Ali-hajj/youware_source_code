@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Plus, Calendar, Users, DollarSign, CheckCircle, Clock, XCircle, Archive, Shield } from 'lucide-react';
 import { addMonths, subMonths } from 'date-fns';
 import { useEventStore } from '../store/eventStore';
@@ -26,9 +26,11 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
     updatedAt: '',
   };
   const roleLabel = activeUser.role ? activeUser.role.toUpperCase() : 'GUEST';
-  const { getEventStats, filters, setFilters, settings, venues, events } = useEventStore();
+  const { getEventStats, loadVenuesFromDatabase, filters, setFilters, settings, venues, events } = useEventStore();
   const stats = getEventStats();
-
+  useEffect(() => {
+      loadVenuesFromDatabase(); 
+  }, [loadVenuesFromDatabase]);
   const handleVenueFilter = (venue: VenueType | undefined) => {
     setFilters({ venue });
   };
@@ -39,7 +41,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
       : addMonths(currentDate, 1);
     onDateChange(newDate);
   };
-
+  
   return (
     <div className="w-80 min-w-80 bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700 min-h-0 flex flex-col shadow-xl flex-shrink-0 overflow-hidden">
       {/* Header - Fixed */}

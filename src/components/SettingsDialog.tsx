@@ -5,7 +5,9 @@ import { useAuthStore } from '../store/authStore';
 import { useLicenseStore } from '../store/licenseStore';
 import { Venue, ColorPreset, AppUser, UserRole, License, LicensePlanType, LicenseStatus } from '../types';
 import { API_CONFIG, API_ENDPOINTS, apiCall } from '../config/api';
-
+// import EmojiPicker, Picker, { EmojiClickData } from 'emoji-picker-react';
+import Picker, { EmojiClickData } from 'emoji-picker-react';
+// ctrl z
 interface SettingsDialogProps {
   isOpen: boolean;
   onClose: () => void;
@@ -19,12 +21,44 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     updateSettings, 
     uploadLogo, 
     addVenue, 
+    loadSettingsFromDatabase,
+    loadVenuesFromDatabase,
+    saveSettingsToDatabase,
     updateVenue, 
     deleteVenue,
-    resetToDefaults 
+    resetToDefaults, 
   } = useEventStore();
+  
   const { user } = useAuthStore();
+  useEffect(() => {
+    if (isOpen) {
+      loadSettingsFromDatabase();
+      loadVenuesFromDatabase();  // <-- ADD THIS
+    }
+  }, [isOpen, loadSettingsFromDatabase, loadVenuesFromDatabase]);
 
+  useEffect(() => {
+    if (isOpen) {
+      loadSettingsFromDatabase();
+    }
+  }, [isOpen, loadSettingsFromDatabase]);
+  
+
+  const [showEmojiPicker, setShowEmojiPicker] = useState(false);
+  const [icon, setIcon] = useState('');
+
+  const onEmojiClick = (emojiObject: EmojiClickData, event: MouseEvent) => {
+  setIcon(emojiObject.emoji); // For UI
+
+  if (editingVenue) {
+    setEditedVenue((prev) => ({
+      ...prev,
+      icon: emojiObject.emoji,
+    }));
+  }
+
+  setShowEmojiPicker(false);
+};
   const [activeTab, setActiveTab] = useState<'general' | 'venues' | 'colors' | 'database' | 'users' | 'licenses'>('general');
   const [users, setUsers] = useState<AppUser[]>([]);
   const [isLoadingUsers, setIsLoadingUsers] = useState(false);
@@ -76,18 +110,18 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     phone: '',
     email: '',
   });
-  
-  const [storeName, setStoreName] = useState(settings.storeName);
-  const [storeEmail, setStoreEmail] = useState(settings.storeEmail || '');
-  const [storePhone, setStorePhone] = useState(settings.storePhone || '');
-  const [storeAddress, setStoreAddress] = useState(settings.storeAddress || '');
-  const [applicationTitle, setApplicationTitle] = useState(settings.applicationTitle);
-  const [applicationSubtitle, setApplicationSubtitle] = useState(settings.applicationSubtitle);
-  const [selectedVenue, setSelectedVenue] = useState(settings.selectedVenue || '');
-  const [themeColor, setThemeColor] = useState(settings.themeColor);
-  const [backgroundColor, setBackgroundColor] = useState(settings.backgroundColor);
-  const [textColor, setTextColor] = useState(settings.textColor);
-  const [highlightTextColor, setHighlightTextColor] = useState(settings.highlightTextColor);
+
+  const [storeName, setStoreName] = useState('');
+  const [storeEmail, setStoreEmail] = useState('');
+  const [storePhone, setStorePhone] = useState('');
+  const [storeAddress, setStoreAddress] = useState('');
+  const [applicationTitle, setApplicationTitle] = useState('');
+  const [applicationSubtitle, setApplicationSubtitle] = useState('');
+  const [selectedVenue, setSelectedVenue] = useState('');
+  const [themeColor, setThemeColor] = useState('');
+  const [backgroundColor, setBackgroundColor] = useState('');
+  const [textColor, setTextColor] = useState('');
+  const [highlightTextColor, setHighlightTextColor] = useState('');
   const [dbHost, setDbHost] = useState(settings.dbHost || '');
   const [dbUser, setDbUser] = useState(settings.dbUser || '');
   const [dbPassword, setDbPassword] = useState(settings.dbPassword || '');
@@ -96,9 +130,40 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
   const [editingVenue, setEditingVenue] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const importFileInputRef = useRef<HTMLInputElement>(null);
+  //  const [logo, setLogo] = useState(settings.logo || '');
+  const { logo } = settings;
+  const [editedVenue, setEditedVenue] = useState<Partial<Venue> | null>(null);
+
+
+
+  const [newVenueIcon, setNewVenueIcon] = useState(newVenue.icon || '📅');
+  const [showAddEmojiPicker, setShowAddEmojiPicker] = useState(false);
+
+  useEffect(() => {
+    setNewVenueIcon(newVenue.icon || '📅');
+  }, [newVenue.icon]);
 
   const canManageUsers = user?.role === 'admin' || user?.role === 'manager';
+  useEffect(() => {
+    if (!settings || !settings.id) return;
 
+    setStoreName(settings.storeName || '');
+    setStoreEmail(settings.storeEmail || '');
+    setStorePhone(settings.storePhone || '');
+    setStoreAddress(settings.storeAddress || '');
+    setApplicationTitle(settings.applicationTitle || '');
+    setApplicationSubtitle(settings.applicationSubtitle || '');
+    setSelectedVenue(settings.selectedVenue || '');
+    setThemeColor(settings.themeColor || '');
+    setBackgroundColor(settings.backgroundColor || '');
+    setTextColor(settings.textColor || '');
+    setHighlightTextColor(settings.highlightTextColor || '');
+    setDbHost(settings.dbHost || '');
+    setDbUser(settings.dbUser || '');
+    setDbPassword(settings.dbPassword || '');
+    setDbName(settings.dbName || '');
+  }, [settings]);
+  
   const fetchUsers = async () => {
     if (!canManageUsers) return;
     setIsLoadingUsers(true);
@@ -257,7 +322,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
       setIsVerifyingSerial(false);
     }
   };
-
+  
   const connectDatabase = async () => {
     if (!dbHost || !dbUser || !dbName) {
       alert('Please provide DB_HOST, DB_USER, and DB_NAME before connecting.');
@@ -342,31 +407,44 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     }
   };
 
-  const handleSaveSettings = async () => {
-    updateSettings({
+const handleSaveSettings = async () => {
+  try {
+    await saveSettingsToDatabase({
+      id: settings.id,
       storeName,
       storeEmail,
       storePhone,
       storeAddress,
       applicationTitle,
       applicationSubtitle,
-      selectedVenue: selectedVenue || undefined,
+      logo: logo,   // <-- here, ensure logo is never null or undefined
       themeColor,
       backgroundColor,
       textColor,
       highlightTextColor,
-      dbHost,
-      dbUser,
-      dbPassword,
-      dbName
     });
 
-    if (dbHost && dbUser && dbName) {
-      await connectDatabase();
-    }
+    updateSettings({
+      id: settings.id,
+      storeName,
+      storeEmail,
+      storePhone,
+      storeAddress,
+      applicationTitle,
+      applicationSubtitle,
+      logo: logo,
+      themeColor,
+      backgroundColor,
+      textColor,
+      highlightTextColor,
+    });
 
     onClose();
-  };
+  } catch (error) {
+    console.error('Failed to save settings:', error);
+  }
+};
+
 
   useEffect(() => {
     if (canManageUsers && activeTab === 'users') {
@@ -409,29 +487,75 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
     updateSettings({ logo: '/assets/default-logo.png' });
     alert('Logo reset to default successfully!');
   };
-
-  const handleAddVenue = () => {
-    if (newVenue.name && newVenue.type && newVenue.color) {
-      addVenue({
+const handleAddVenue = async () => {
+  if (newVenue.name && newVenue.type && newVenue.color) {
+    try {
+      await addVenue({
         name: newVenue.name,
         type: newVenue.type,
         color: newVenue.color,
-        icon: newVenue.icon || '📅'
+        icon: newVenue.icon || '📅',
       });
       setNewVenue({ name: '', type: '', color: '#6b7280', icon: '📅' });
+    } catch (error) {
+      alert('Failed to add venue');
+      console.error(error);
     }
-  };
+  }
+};
 
-  const handleUpdateVenue = (id: string, updates: Partial<Venue>) => {
-    updateVenue(id, updates);
+const handleUpdateVenue = async (id: string, updates: Partial<Venue>) => {
+  const currentVenue = venues.find((v) => v.id === id);
+  if (!currentVenue) return;
+
+  try {
+    await updateVenue(id, {
+      name: updates.name ?? currentVenue.name,
+      type: updates.type ?? currentVenue.type,
+      color: updates.color ?? currentVenue.color,
+      icon: updates.icon ?? currentVenue.icon,
+    });
+
     setEditingVenue(null);
-  };
+  } catch (error) {
+    alert('Failed to update venue');
+    console.error(error);
+  }
+};
 
-  const handleDeleteVenue = (id: string) => {
-    if (window.confirm('Are you sure you want to delete this venue?')) {
-      deleteVenue(id);
+
+const handleDeleteVenue = async (id: string) => {
+  if (window.confirm('Are you sure you want to delete this venue?')) {
+    try {
+      await deleteVenue(id);
+    } catch (error) {
+      alert('Failed to delete venue');
+      console.error(error);
     }
-  };
+  }
+};
+  // const handleAddVenue = () => {
+  //   if (newVenue.name && newVenue.type && newVenue.color) {
+  //     addVenue({
+  //       name: newVenue.name,
+  //       type: newVenue.type,
+  //       color: newVenue.color,
+  //       icon: newVenue.icon || '📅'
+  //     });
+  //     setNewVenue({ name: '', type: '', color: '#6b7280', icon: '📅' });
+  //   }
+  // };
+
+  // const handleUpdateVenue = (id: string, updates: Partial<Venue>) => {
+  //   updateVenue(id, updates);
+  //   setEditingVenue(null);
+  // };
+
+  // const handleDeleteVenue = (id: string) => {
+  //   if (window.confirm('Are you sure you want to delete this venue?')) {
+  //     deleteVenue(id);
+  //   }
+  // };
 
   const resetUserForm = () => {
     setUserForm({
@@ -795,46 +919,85 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
               <div className="p-6 space-y-6">
                 {/* Add New Venue */}
                 <div className="bg-slate-50 rounded-lg p-4">
-                  <h3 className="font-medium text-slate-800 mb-3">Add New Venue</h3>
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-                    <input
+                <h3 className="font-medium text-slate-800 mb-3">Add New Venue</h3>
+
+                {/* Inputs Grid */}
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  {/* Venue Name */}
+                  <input
+                    type="text"
+                    placeholder="Venue Name"
+                    value={newVenue.name || ''}
+                    onChange={(e) => setNewVenue({ ...newVenue, name: e.target.value })}
+                    className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+
+                  {/* Venue Type */}
+                  <input
+                    type="text"
+                    placeholder="Type (e.g., private_dining)"
+                    value={newVenue.type || ''}
+                    onChange={(e) => setNewVenue({ ...newVenue, type: e.target.value })}
+                    className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                  />
+
+                  {/* Color Picker */}
+                  <input
+                    type="color"
+                    value={newVenue.color || '#6b7280'}
+                    onChange={(e) => setNewVenue({ ...newVenue, color: e.target.value })}
+                    className="w-12 h-10 rounded border border-slate-300"
+                  />
+
+                  {/* Icon Input */}
+                  <div className="relative" style={{marginLeft:'-135px'}}>
+                    <input 
                       type="text"
-                      placeholder="Venue Name"
-                      value={newVenue.name || ''}
-                      onChange={(e) => setNewVenue({ ...newVenue, name: e.target.value })}
-                      className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                      placeholder="🍕"
+                      value={newVenueIcon || ''}
+                      onChange={(e) => {
+                        setNewVenueIcon(e.target.value);
+                        setNewVenue({ ...newVenue, icon: e.target.value });
+                      }}
+                      className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center"
                     />
-                    <input
-                      type="text"
-                      placeholder="Type (e.g., private_dining)"
-                      value={newVenue.type || ''}
-                      onChange={(e) => setNewVenue({ ...newVenue, type: e.target.value })}
-                      className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
-                    />
-                    <div className="flex gap-2">
-                      <input
-                        type="color"
-                        value={newVenue.color || '#6b7280'}
-                        onChange={(e) => setNewVenue({ ...newVenue, color: e.target.value })}
-                        className="w-12 h-10 rounded border border-slate-300"
-                      />
-                      <input
-                        type="text"
-                        placeholder="🍕"
-                        value={newVenue.icon || ''}
-                        onChange={(e) => setNewVenue({ ...newVenue, icon: e.target.value })}
-                        className="flex-1 px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center"
-                      />
-                    </div>
-                    <button
-                      onClick={handleAddVenue}
-                      className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-2"
-                    >
-                      <Plus className="h-4 w-4" />
-                      Add
-                    </button>
+
+                    {/* Emoji Picker */}
+                    {showAddEmojiPicker && (
+                      <div className="absolute top-full mt-2 z-50">
+                        <Picker
+                          onEmojiClick={(emojiData) => {
+                            setNewVenueIcon(emojiData.emoji);
+                            setNewVenue({ ...newVenue, icon: emojiData.emoji });
+                            setShowAddEmojiPicker(false);
+                          }}
+                        />
+                      </div>
+                    )}
                   </div>
                 </div>
+
+                {/* Action Buttons Row */}
+                <div className="mt-4 flex flex-col sm:flex-row gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowAddEmojiPicker((prev) => !prev)}
+                    className="px-4 py-2 bg-yellow-400 hover:bg-yellow-500 text-white rounded-md font-medium transition-colors"
+                  >
+                    Pick Icon
+                  </button>
+
+                  <button
+                    onClick={handleAddVenue}
+                    className="px-4 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-md font-medium transition-colors flex items-center justify-center gap-2"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Add
+                  </button>
+                </div>
+              </div>
+
+
 
                 {/* Existing Venues */}
                 <div className="space-y-3">
@@ -845,30 +1008,54 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
                         <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-center">
                           <input
                             type="text"
-                            defaultValue={venue.name}
-                            onBlur={(e) => handleUpdateVenue(venue.id, { name: e.target.value })}
+                            value={editedVenue?.name || ''}
+                            onChange={(e) => setEditedVenue((prev) => ({ ...prev, name: e.target.value }))}
                             className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                           />
                           <input
                             type="text"
-                            defaultValue={venue.type}
-                            onBlur={(e) => handleUpdateVenue(venue.id, { type: e.target.value })}
+                            value={editedVenue?.type || ''}
+                            onChange={(e) => setEditedVenue((prev) => ({ ...prev, type: e.target.value }))}
                             className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
                           />
+
                           <input
                             type="color"
-                            defaultValue={venue.color}
-                            onChange={(e) => handleUpdateVenue(venue.id, { color: e.target.value })}
+                            value={editedVenue?.color || '#6b7280'}
+                            onChange={(e) => setEditedVenue((prev) => ({ ...prev, color: e.target.value }))}
                             className="w-full h-10 rounded border border-slate-300"
                           />
-                          <input
-                            type="text"
-                            defaultValue={venue.icon}
-                            onBlur={(e) => handleUpdateVenue(venue.id, { icon: e.target.value })}
-                            className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent text-center"
-                          />
+
+                           <input
+                              type="text"
+                              value={editedVenue?.icon || ''}
+                              onChange={(e) => setEditedVenue((prev) => ({ ...prev, icon: e.target.value }))}
+                              className="px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500 focus:border-transparent"
+                            />
+
+                          {/* Add emoji picker toggle button */}
                           <button
-                            onClick={() => setEditingVenue(null)}
+                            type="button"
+                            onClick={() => {
+                              setIcon(venue.icon || '');
+                              setShowEmojiPicker((prev) => !prev);
+                            }}
+                            className="px-3 py-2 bg-yellow-400 rounded-md"
+                          >
+                            Pick Icon
+                          </button>
+
+                          {/* Conditionally show the emoji picker */}
+                          {showEmojiPicker && editingVenue === venue.id && (
+                            <Picker onEmojiClick={onEmojiClick} />
+                          )}
+                         <button
+                            onClick={() => {
+                              if (editingVenue && editedVenue) {
+                                handleUpdateVenue(editingVenue, editedVenue); // Call your update function
+                                setEditedVenue(null);                         // Clear temp edit state
+                              }
+                            }}
                             className="px-3 py-2 bg-green-500 hover:bg-green-600 text-white rounded-md text-sm"
                           >
                             Done
@@ -889,8 +1076,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
                           </div>
                           <div className="flex items-center gap-2">
                             <button
-                              onClick={() => setEditingVenue(venue.id)}
-                              className="p-2 text-slate-600 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-colors"
+                              onClick={() => {
+                                setEditingVenue(venue.id);           // Set current editing ID
+                                setEditedVenue({ ...venue });        // Shallow copy of the venue being edited
+                                setIcon(venue.icon || '');           // Optional: emoji logic
+                              }}
                             >
                               <Edit className="h-4 w-4" />
                             </button>
@@ -1617,11 +1807,11 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
 
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-slate-700 mb-2">Username</label>
+                        <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
                         <input
                           type="text"
-                          value={userForm.username}
-                          onChange={(e) => setUserForm((prev) => ({ ...prev, username: e.target.value }))}
+                          value={userForm.email}
+                          onChange={(e) => setUserForm((prev) => ({ ...prev, email: e.target.value }))}
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500"
                           required
                           disabled={isEditingUser}
@@ -1668,7 +1858,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
                           required
                         />
                       </div>
-                      <div>
+                      {/* <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Email</label>
                         <input
                           type="email"
@@ -1677,7 +1867,7 @@ export const SettingsDialog: React.FC<SettingsDialogProps> = ({ isOpen, onClose 
                           className="w-full px-3 py-2 border border-slate-300 rounded-md focus:ring-2 focus:ring-amber-500"
                           required
                         />
-                      </div>
+                      </div> */}
                       <div>
                         <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
                         <select

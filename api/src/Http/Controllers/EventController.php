@@ -38,7 +38,11 @@ final class EventController
 
         return JsonResponse::success(['event' => $event]);
     }
-
+    public function allEvents(): array
+    {
+        $records = $this->events->allEvents(); // Calls model method that fetches all events
+        return JsonResponse::success(['events' => $records]);
+    }
     public function store(array $params): array
     {
         $payload = json_decode(file_get_contents('php://input'), true) ?? [];
@@ -75,22 +79,44 @@ final class EventController
 
         return JsonResponse::success(['event' => $event]);
     }
-
-    public function destroy(array $params): array
-    {
-        $id = $params['routeParams']['id'] ?? null;
-        if (!$id) {
-            return JsonResponse::error('Missing event id', 400);
-        }
-
-        $deleted = $this->events->delete($id, $params['user']['id']);
-
-        if (!$deleted) {
-            return JsonResponse::error('Event not found', 404);
-        }
-
-        return JsonResponse::success(['message' => 'Event deleted']);
+public function destroy(array $params): array
+{
+    $id = $params['routeParams']['id'] ?? null;
+    if (!$id) {
+        return JsonResponse::error('Missing event id', 400);
     }
+
+    // Get the user's role
+    $userRole = $params['user']['role'] ?? null;
+    if (!$userRole) {
+        return JsonResponse::error('User role not found', 403);
+    }
+
+    // Only admins can delete events
+    $deleted = $this->events->delete($id, $userRole);
+
+    if (!$deleted) {
+        return JsonResponse::error('You are not allowed to delete this event or it does not exist', 403);
+    }
+
+    return JsonResponse::success(['message' => 'Event deleted']);
+}
+
+    // public function destroy(array $params): array
+    // {
+    //     $id = $params['routeParams']['id'] ?? null;
+    //     if (!$id) {
+    //         return JsonResponse::error('Missing event id', 400);
+    //     }
+
+    //     $deleted = $this->events->delete($id, $params['user']['id']);
+
+    //     if (!$deleted) {
+    //         return JsonResponse::error('Event not found', 404);
+    //     }
+
+    //     return JsonResponse::success(['message' => 'Event deleted']);
+    // }
 
     private function rules(bool $isUpdate = false): array
     {

@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Event, EventFilters, EventStats, Venue, AppSettings, ColorPreset } from '../types';
 import { API_ENDPOINTS, API_CONFIG, apiCall, isScreenshotEnvironment } from '../config/api';
 import { useAuthStore } from './authStore';
-
+// ctrl z
 interface EventStore {
   events: Event[];
   filters: EventFilters;
@@ -11,7 +11,9 @@ interface EventStore {
   venues: Venue[];
   settings: AppSettings;
   colorPresets: ColorPreset[];
-  
+  loadSettingsFromDatabase: () => Promise<void>;
+  loadVenuesFromDatabase: () => Promise<void>;
+  saveSettingsToDatabase: (updatedSettings: Partial<AppSettings>) => Promise<void>;
   addEvent: (event: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>) => Promise<void>;
   addMultipleEvents: (events: Omit<Event, 'id' | 'createdAt' | 'updatedAt'>[]) => Promise<void>;
   updateEvent: (id: string, updates: Partial<Event>) => Promise<void>;
@@ -37,65 +39,247 @@ interface EventStore {
   getEventColor: (event: Event) => string;
 }
 
-const defaultVenues: Venue[] = [
-  { id: 'restaurant', name: 'Restaurant', type: 'restaurant', color: '#10b981', icon: '🍽️' },
-  { id: 'bar', name: 'Bar', type: 'bar', color: '#f59e0b', icon: '🍺' },
-  { id: 'banquet', name: 'Banquet Hall', type: 'banquet', color: '#6366f1', icon: '🎉' },
-];
+  const defaultSettings: AppSettings = {
+    id: null,
+    storeName: '',
+    storeEmail: '',
+    storePhone: '',
+    storeAddress: '',
+    applicationTitle: '',
+    applicationSubtitle: '',
+    logo: '',
+    themeColor: '#f59e0b',
+    backgroundColor: '#0f172a',
+    textColor: '#ffffff',
+    highlightTextColor: '#f59e0b',
+    dbHost: '',
+    dbUser: '',
+    dbPassword: '',
+    dbName: '',
+  };
 
-const defaultSettings: AppSettings = {
-  storeName: 'My Restaurant',
-  storeEmail: 'Mikeakanan@gmail.com',
-  storePhone: '313.938.6666',
-  storeAddress: '0000 Street Name, Farmington Hills Mi 48336',
-  applicationTitle: 'Event Manager',
-  applicationSubtitle: 'Professional Hospitality Event Management',
-  logo: '/assets/default-logo.png',
-  themeColor: '#f59e0b',
-  backgroundColor: '#0f172a',
-  textColor: '#ffffff',
-  highlightTextColor: '#f59e0b',
-  dbHost: '',
-  dbUser: '',
-  dbPassword: '',
-  dbName: '',
-};
-
-const defaultColorPresets: ColorPreset[] = [
-  { id: '1', name: 'Red', color: '#ef4444' },
-  { id: '2', name: 'Orange', color: '#f97316' },
-  { id: '3', name: 'Amber', color: '#f59e0b' },
-  { id: '4', name: 'Yellow', color: '#eab308' },
-  { id: '5', name: 'Lime', color: '#84cc16' },
-  { id: '6', name: 'Green', color: '#22c55e' },
-  { id: '7', name: 'Emerald', color: '#10b981' },
-  { id: '8', name: 'Teal', color: '#14b8a6' },
-  { id: '9', name: 'Cyan', color: '#06b6d4' },
-  { id: '10', name: 'Sky', color: '#0ea5e9' },
-  { id: '11', name: 'Blue', color: '#3b82f6' },
-  { id: '12', name: 'Indigo', color: '#6366f1' },
-  { id: '13', name: 'Violet', color: '#8b5cf6' },
-  { id: '14', name: 'Purple', color: '#a855f7' },
-  { id: '15', name: 'Fuchsia', color: '#d946ef' },
-  { id: '16', name: 'Pink', color: '#ec4899' },
-  { id: '17', name: 'Rose', color: '#f43f5e' },
-  { id: '18', name: 'White', color: '#ffffff' },
-  { id: '19', name: 'Black', color: '#000000' },
-  { id: '20', name: 'Dark Navy', color: '#1e3a8a' },
-];
+  const defaultColorPresets: ColorPreset[] = [
+    { id: '1', name: 'Red', color: '#ef4444' },
+    { id: '2', name: 'Orange', color: '#f97316' },
+    { id: '3', name: 'Amber', color: '#f59e0b' },
+    { id: '4', name: 'Yellow', color: '#eab308' },
+    { id: '5', name: 'Lime', color: '#84cc16' },
+    { id: '6', name: 'Green', color: '#22c55e' },
+    { id: '7', name: 'Emerald', color: '#10b981' },
+    { id: '8', name: 'Teal', color: '#14b8a6' },
+    { id: '9', name: 'Cyan', color: '#06b6d4' },
+    { id: '10', name: 'Sky', color: '#0ea5e9' },
+    { id: '11', name: 'Blue', color: '#3b82f6' },
+    { id: '12', name: 'Indigo', color: '#6366f1' },
+    { id: '13', name: 'Violet', color: '#8b5cf6' },
+    { id: '14', name: 'Purple', color: '#a855f7' },
+    { id: '15', name: 'Fuchsia', color: '#d946ef' },
+    { id: '16', name: 'Pink', color: '#ec4899' },
+    { id: '17', name: 'Rose', color: '#f43f5e' },
+    { id: '18', name: 'White', color: '#ffffff' },
+    { id: '19', name: 'Black', color: '#000000' },
+    { id: '20', name: 'Dark Navy', color: '#1e3a8a' },
+  ];
 
 export const useEventStore = create<EventStore>((set, get) => ({
   events: [],
   filters: {},
   selectedEvent: null,
   isEventDialogOpen: false,
-  venues: defaultVenues,
+  // venues: defaultVenues,
+  venues: [],
   settings: defaultSettings,
   colorPresets: defaultColorPresets,
 
+
+  loadVenuesFromDatabase: async () => {
+  const apiUrl = API_ENDPOINTS.venues;
+
+  try {
+    const response = await apiCall(apiUrl);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Could not read error response');
+      throw new Error(`Failed to load venues: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Assuming the API response is { venues: [...] } or just [...] 
+    // Adjust accordingly:
+    // If your API returns { venues: [...] }:
+    // const venuesList = data.venues;
+
+    // If your API returns an array directly:
+    const venuesList = data; 
+
+    set({ venues: venuesList });
+
+    console.log('✅ Venues loaded:', venuesList);
+  } catch (error) {
+    console.error('❌ Error loading venues:', error);
+  }
+},
+
+addVenue: async (venue) => {
+  if (isScreenshotEnvironment()) {
+    const newVenue = {
+      ...venue,
+      id: `venue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    console.log('🖼️ Screenshot environment detected - skipping network request.', newVenue);
+    set((state) => ({ venues: [...state.venues, newVenue] }));
+    return;
+  }
+
+  // Transform payload if your backend requires it (optional)
+  const payload = {
+    ...venue,
+    // e.g. rename keys if needed
+    // color_code: venue.color,
+    // icon_symbol: venue.icon,
+  };
+
+  const response = await apiCall(API_ENDPOINTS.venues, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Could not read error response');
+    throw new Error(`Failed to add venue: ${errorText}`);
+  }
+
+  const created = await response.json();
+
+  if (created.id) {
+    set((state) => ({ venues: [...state.venues, { ...venue, id: String(created.id) }] }));
+  }
+},
+
+updateVenue: async (id, updates) => {
+  const apiUrl = API_ENDPOINTS.venueById(id);
+
+  const response = await apiCall(apiUrl, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updates),
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Could not read error response');
+    throw new Error(`Failed to update venue: ${errorText}`);
+  }
+
+  const payload = await response.json();
+
+  if (payload.venue) {
+    set((state) => ({
+      venues: state.venues.map((venue) => (venue.id === id ? payload.venue : venue)),
+    }));
+  }
+},
+
+deleteVenue: async (id) => {
+  if (isScreenshotEnvironment()) {
+    console.log('🖼️ Screenshot environment detected - skipping network request for delete.', id);
+    set((state) => ({ venues: state.venues.filter((venue) => venue.id !== id) }));
+    return;
+  }
+
+  const response = await apiCall(API_ENDPOINTS.venueById(id), {
+    method: 'DELETE',
+  });
+
+  if (!response.ok) {
+    const errorText = await response.text().catch(() => 'Could not read error response');
+    throw new Error(`Failed to delete venue: ${errorText}`);
+  }
+
+  set((state) => ({ venues: state.venues.filter((venue) => venue.id !== id) }));
+},
+
+
+loadSettingsFromDatabase: async () => {
+  const apiUrl = API_ENDPOINTS.settings;
+
+  if (isScreenshotEnvironment()) {
+    console.log('🖼️ Screenshot environment detected - skipping loadSettingsFromDatabase');
+    return;
+  }
+
+  try {
+    const response = await apiCall(apiUrl);
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Could not read error response');
+      throw new Error(`Failed to load settings: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    // Map snake_case API response to camelCase frontend interface
+    const mappedSettings = {
+      id: data.settings.id,
+      storeName: data.settings.store_name,
+      storeEmail: data.settings.store_email,
+      storePhone: data.settings.store_phone,
+      storeAddress: data.settings.store_address,
+      applicationTitle: data.settings.application_title,
+      applicationSubtitle: data.settings.application_subtitle,
+      logo: data.settings.logo,
+      themeColor: data.settings.theme_color,
+      backgroundColor: data.settings.background_color,
+      textColor: data.settings.text_color,
+      highlightTextColor: data.settings.highlight_text_color,
+      selectedVenue: data.settings.selected_venue, // Optional, if your backend has this
+    };
+
+    set({ settings: { ...get().settings, ...mappedSettings } });
+
+    console.log('✅ Settings loaded:', mappedSettings);
+  } catch (error) {
+    console.error('❌ Error loading settings:', error);
+  }
+},
+
+
+saveSettingsToDatabase: async (updatedSettings: Partial<AppSettings>) => {
+  const apiUrl = API_ENDPOINTS.updateSettings;
+
+  if (isScreenshotEnvironment()) {
+    console.log('🖼️ Screenshot environment detected - skipping saveSettingsToDatabase');
+    set((state) => ({ settings: { ...state.settings, ...updatedSettings } }));
+    return;
+  }
+
+  try {
+    const response = await apiCall(apiUrl, {
+      method: 'PUT', // or POST depending on your API design
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(updatedSettings),
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => 'Could not read error response');
+      throw new Error(`Failed to save settings: ${errorText}`);
+    }
+
+    const data = await response.json();
+
+    set({ settings: { ...get().settings, ...data.settings } });
+    console.log('✅ Settings saved:', data.settings);
+  } catch (error) {
+    console.error('❌ Error saving settings:', error);
+  }
+},
+
   addMultipleEvents: async (eventsData) => {
     const apiUrl = API_ENDPOINTS.eventsBulk;
-
+    
     if (isScreenshotEnvironment()) {
       const timestamp = Date.now();
       const newEvents: Event[] = eventsData.map((eventData, index) => ({
@@ -134,6 +318,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
       };
+      console.log('newEvent',newEvent);
       console.log('🖼️ Screenshot environment detected - skipping network request.');
       set((state) => ({ events: [...state.events, newEvent] }));
       return;
@@ -154,7 +339,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
       endTime: undefined,
       contact: undefined,
     };
-
+    
     const response = await apiCall(apiUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -175,7 +360,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   updateEvent: async (id, updates) => {
     const apiUrl = API_ENDPOINTS.eventsById(id);
-
+    
     if (isScreenshotEnvironment()) {
       console.log('🖼️ Screenshot environment detected - skipping network request.');
       set((state) => ({
@@ -246,7 +431,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   loadEventsFromDatabase: async () => {
     const apiUrl = API_ENDPOINTS.events;
-
+    
     if (isScreenshotEnvironment()) {
       console.log('🖼️ Screenshot environment detected - skipping network request.');
       return;
@@ -263,7 +448,7 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
     console.log('📥 Loading events from database...');
     console.log('🔗 API URL:', apiUrl);
-    console.log('🔑 Using API base:', API_CONFIG.base || 'same-origin');
+    // console.log('🔑 Using API base:', API_CONFIG.base || 'same-origin');
   
     const response = await apiCall(apiUrl);
 
@@ -283,26 +468,52 @@ export const useEventStore = create<EventStore>((set, get) => ({
   
     // Transform PHP backend field names to match frontend expectations
     const transformedEvents = (data.events || []).map((event: any) => {
-      console.log('🔄 Transforming event:', event.id, 'start_time:', event.start_time, 'end_time:', event.end_time);
-      return {
-        ...event,
-        // Convert snake_case time fields to camelCase
-        startTime: event.start_time || event.startTime,
-        endTime: event.end_time || event.endTime,
-        // Convert flat contact fields to nested contact object
-        contact: {
-          name: event.contact_name || event.contact?.name || '',
-          phone: event.contact_phone || event.contact?.phone || '',
-          email: event.contact_email || event.contact?.email || '',
-        },
-        // Remove the original snake_case fields to avoid confusion
-        start_time: undefined,
-        end_time: undefined,
-        contact_name: undefined,
-        contact_phone: undefined,
-        contact_email: undefined,
-      };
-    });
+  const pricing = event.pricing_data ? JSON.parse(event.pricing_data) : {};
+
+  // Transform menu items
+  const menuItems = (pricing.menuItems || []).map((item: any) => ({
+    id: item.id || '',
+    name: item.name || '', // Make sure name exists here
+    price: item.price || 0,
+    quantity: item.quantity || 0,
+    total: item.total || (item.price && item.quantity ? item.price * item.quantity : 0),
+  }));
+
+  return {
+    ...event,
+    startTime: event.start_time || event.startTime || '',
+    endTime: event.end_time || event.endTime || '',
+
+    contact: {
+      name: event.contact_name || event.contact?.name || '',
+      phone: event.contact_phone || event.contact?.phone || '',
+      email: event.contact_email || event.contact?.email || '',
+    },
+
+    pricing: pricing,
+    menuItems: menuItems,  // <-- Correctly mapped
+    customPlatters: pricing.customPlatters || [],
+    personCount: pricing.personCount || 0,
+    pricePerPerson: pricing.pricePerPerson || 0,
+    subtotal: pricing.subtotal || 0,
+    discount: pricing.discount || { type: 'percentage', value: 0, amount: 0 },
+    taxRate: pricing.taxRate || 0,
+    taxAmount: pricing.taxAmount || 0,
+    includeTax: pricing.includeTax ?? true,
+    total: pricing.total || 0,
+    deposits: pricing.deposits || [],
+    amountPaid: pricing.amountPaid || 0,
+    remainingBalance: pricing.remainingBalance || 0,
+
+    start_time: undefined,
+    end_time: undefined,
+    contact_name: undefined,
+    contact_phone: undefined,
+    contact_email: undefined,
+    pricing_data: undefined,
+  };
+});
+
   
     // Log before and after state update
     const prevEvents = get().events;
@@ -322,24 +533,6 @@ export const useEventStore = create<EventStore>((set, get) => ({
 
   setEventDialogOpen: (isOpen) => {
     set({ isEventDialogOpen: isOpen });
-  },
-
-  addVenue: (venueData) => {
-    const newVenue: Venue = {
-      ...venueData,
-      id: `venue-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    };
-    set((state) => ({ venues: [...state.venues, newVenue] }));
-  },
-
-  updateVenue: (id, updates) => {
-    set((state) => ({
-      venues: state.venues.map((venue) => (venue.id === id ? { ...venue, ...updates } : venue)),
-    }));
-  },
-
-  deleteVenue: (id) => {
-    set((state) => ({ venues: state.venues.filter((venue) => venue.id !== id) }));
   },
 
   updateSettings: (updates) => {

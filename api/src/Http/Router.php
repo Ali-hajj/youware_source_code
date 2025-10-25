@@ -11,6 +11,10 @@ use App\Http\Controllers\UserController;
 use App\Http\Middleware\AuthMiddleware;
 use App\Http\Middleware\CorsMiddleware;
 use App\Support\JsonResponse;
+use App\Http\Controllers\SettingsController;
+use App\Http\Controllers\VenueController;
+use App\Http\Controllers\GuestController;
+
 
 final class Router
 {
@@ -27,6 +31,8 @@ final class Router
             $this->post('/auth/signup', [AuthController::class, 'signup']);
             $this->post('/auth/login', [AuthController::class, 'login']);
             $this->post('/auth/reset-password', [AuthController::class, 'resetPassword']);
+            $this->post('/auth/logout', [AuthController::class, 'logout']);
+
 
             $this->middleware([AuthMiddleware::class], function (): void {
                 $this->get('/auth/me', [AuthController::class, 'me']);
@@ -35,12 +41,29 @@ final class Router
                 $this->post('/events', [EventController::class, 'store']);
                 $this->put('/events/{id}', [EventController::class, 'update']);
                 $this->delete('/events/{id}', [EventController::class, 'destroy']);
+                $this->get('/events', [EventController::class, 'allEvents']);
+
 
                 $this->post('/users', [UserController::class, 'store']);
                 $this->get('/users', [UserController::class, 'index']);
                 $this->get('/users/{id}', [UserController::class, 'show']);
                 $this->put('/users/{id}', [UserController::class, 'update']);
                 $this->delete('/users/{id}', [UserController::class, 'destroy']);
+
+                $this->get('/settings', [SettingsController::class, 'index']);
+                $this->put('/settings', [SettingsController::class, 'update']);
+
+                $this->get('/venues', [VenueController::class, 'getAll']);
+                $this->post('/venues', [VenueController::class, 'add']);
+                $this->put('/venues/{id}', [VenueController::class, 'update']);
+                $this->delete('/venues/{id}', [VenueController::class, 'delete']);
+
+                // Guests routes nested under eventId
+                $this->get('/events/{eventId}/guests', [GuestController::class, 'index']);
+                $this->post('/events/{eventId}/guests', [GuestController::class, 'store']);
+                $this->get('/events/{eventId}/guests/{guestId}', [GuestController::class, 'show']);
+                $this->put('/events/{eventId}/guests/{guestId}', [GuestController::class, 'update']);
+                $this->delete('/events/{eventId}/guests/{guestId}', [GuestController::class, 'destroy']);
 
 
                 $this->get('/licenses', [LicenseController::class, 'index']);
@@ -101,7 +124,6 @@ final class Router
         $path = '/' . trim($path, '/');
         return $path === '/' ? $path : rtrim($path, '/');
     }
-
     public function handle(string $method, string $uri): void
     {
         CorsMiddleware::handle();
@@ -115,10 +137,61 @@ final class Router
             return;
         }
 
-        $response = $this->runRoute($route);
+        $input = [];
+        if (in_array($method, ['PUT', 'POST', 'PATCH'])) {
+            $rawBody = file_get_contents('php://input');
+            $input = json_decode($rawBody, true);
+            if (!is_array($input)) {
+                $input = [];
+            }
+        }
+
+        $params = ['input' => $input];
+
+        $response = $this->runRoute($route, $params);
+
+        // Wrap non-array responses properly
+        if (!is_array($response) || !isset($response['body'], $response['status'])) {
+            $response = [
+                'body' => $response,
+                'status' => 200,
+            ];
+        }
 
         JsonResponse::send($response['body'], $response['status']);
     }
+    // public function handle(string $method, string $uri): void
+    // {
+    //     CorsMiddleware::handle();
+
+    //     $path = parse_url($uri, PHP_URL_PATH) ?: '/';
+
+    //     $route = $this->match($method, $path);
+
+    //     if (!$route) {
+    //         JsonResponse::send(['success' => false, 'message' => 'Route not found'], 404);
+    //         return;
+    //     }
+
+    //     // Parse JSON body if method is PUT, POST, PATCH
+    //     $input = [];
+    //     if (in_array($method, ['PUT', 'POST', 'PATCH'])) {
+    //         $rawBody = file_get_contents('php://input');
+    //         $input = json_decode($rawBody, true);
+    //         if (!is_array($input)) {
+    //             $input = [];
+    //         }
+    //     }
+
+    //     // Pass input to runRoute in params
+    //     $params = [
+    //         'input' => $input,
+    //     ];
+
+    //     $response = $this->runRoute($route, $params);
+
+    //     JsonResponse::send($response['body'], $response['status']);
+    // }
 
     private function match(string $method, string $uri): ?array
     {
@@ -152,12 +225,14 @@ final class Router
         return $params;
     }
 
-    private function runRoute(array $route): array
+    private function runRoute(array $route, array $params = []): array
     {
+        // Add route params if any
+        $params['routeParams'] = $route['params'] ?? [];
+
+        // Middleware handling remains the same...
+
         $handler = $route['handler'];
-        $params = [
-            'routeParams' => $route['params'] ?? [],
-        ];
 
         $middlewareQueue = array_merge(...$route['middleware']);
 
@@ -178,4 +253,6 @@ final class Router
 
         return $next($params);
     }
+
+
 }

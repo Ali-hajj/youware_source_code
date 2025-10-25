@@ -56,7 +56,8 @@ function App() {
     events,
     settings,
     getVenueById,
-    loadEventsFromDatabase
+    loadSettingsFromDatabase ,
+    loadEventsFromDatabase,
   } = useEventStore();
 
   useEffect(() => {
@@ -64,7 +65,9 @@ function App() {
       refreshProfile().catch(() => undefined);
     }
   }, [token, user, refreshProfile]);
-
+useEffect(() => {
+    loadSettingsFromDatabase();
+  }, [loadSettingsFromDatabase]);
   // Load events from database after user is authenticated
   useEffect(() => {
     if (user && user.id !== 'GUEST' && !user.id.startsWith('offline-')) {
@@ -139,7 +142,7 @@ function App() {
   if (!user) {
     return <LoginScreen />;
   }
-
+  
   return (
     <div 
       className="h-screen transition-colors duration-300 flex flex-col"
