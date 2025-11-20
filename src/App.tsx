@@ -16,7 +16,8 @@ import { useAuthStore } from './store/authStore';
 import { useTokenExpirationChecker } from './utils/tokenExpirationChecker';
 import { EventStatus, PaymentStatus } from './types';
 
-type TabType = 'calendar' | 'history' | 'daily';
+export type TabType = 'calendar' | 'history' | 'daily';
+
 
 function App() {
   const [currentDate, setCurrentDate] = useState(new Date());
@@ -157,8 +158,8 @@ useEffect(() => {
           onNavigateToHistory={handleNavigateToHistory}
           currentUser={safeUser}
           onLogout={logout}
+          onNavigateToTab={(tab) => setActiveTab(tab)} // pass tab setter
         />
-
         {/* Main Content */}
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Header */}

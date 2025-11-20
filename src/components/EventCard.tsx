@@ -117,7 +117,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
               ? 'bg-green-50 text-green-700 border-green-200'
               : 'bg-orange-50 text-orange-700 border-orange-200'
           }`}>
-            {event.paymentStatus}
+            {event['payment_status']}
           </span>
         </div>
       </div>
@@ -141,13 +141,12 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
           </div>
         )}
       </div>
-
       {/* Full Details for Daily View */}
       {showFullDetails && (
         <>
           {/* Venue Info */}
           <div className="mt-3 text-sm text-gray-600">
-            <div className="font-medium">Venue: {venue?.name || event.venue}</div>
+            <div className="font-medium">Venue: {event['venue_name'] || event.venue || 'Unknown'}</div>
           </div>
           
           {/* Payment Info */}
@@ -159,7 +158,7 @@ export const EventCard: React.FC<EventCardProps> = ({ event, compact = false, on
                   ? 'bg-green-100 text-green-700'
                   : 'bg-orange-100 text-orange-700'
               }`}>
-                {event.paymentStatus}
+                {event['payment_status']}
               </span>
               {event.paymentMethod && event.paymentStatus === 'paid' && (
                 <span className="text-gray-500">via {event.paymentMethod.replace('_', ' ')}</span>

@@ -84,7 +84,7 @@ export const EventDialog: React.FC<EventDialogProps> = ({
   const [activeTab, setActiveTab] = useState<'details' | 'guests' | 'menu' | 'invoice'>('details');
 
   const isEditMode = Boolean(event);
-
+  
   useEffect(() => {
     if (isOpen) {
       if (event) {
@@ -96,11 +96,11 @@ export const EventDialog: React.FC<EventDialogProps> = ({
           venueId: event.venueId || event.venue,
           color: event.color,
           date: event.date,
-          startTime: event.startTime,
-          endTime: event.endTime,
+          startTime: event['start_time'] || event.startTime,
+          endTime: event['end_time']|| event.endTime,
           status: event.status,
-          paymentStatus: event.paymentStatus,
-          paymentMethod: event.paymentMethod as PaymentMethod,
+          paymentStatus: event['payment_status'] || event.paymentStatus,
+          paymentMethod: event['payment_method'] as PaymentMethod || event.paymentMethod as PaymentMethod,
           // event.contact ?? { name: event['contact_name'], phone: ['contact_phone'], email: ['contact_email'] }, // <-- add this fallback
           // contact: event.contact ?? { name: '', phone: '', email: '' }, // <-- add this fallback
           contact: event.contact ?? {
@@ -356,12 +356,22 @@ export const EventDialog: React.FC<EventDialogProps> = ({
   };
 
   // Helper function to format time to 12-hour format
-  const formatTo12Hour = (time24: string): string => {
-    const [hours, minutes] = time24.split(':').map(Number);
-    const period = hours >= 12 ? 'PM' : 'AM';
-    const hours12 = hours % 12 || 12;
-    return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
-  };
+  // const formatTo12Hour = (time24: string): string => {
+  //   const [hours, minutes] = time24.split(':').map(Number);
+  //   const period = hours >= 12 ? 'PM' : 'AM';
+  //   const hours12 = hours % 12 || 12;
+  //   return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+  // };
+  console.log('form data',formData);
+  
+  const formatTo12Hour = (time24?: string): string => {
+  if (!time24) return ''; 
+  const [hours, minutes] = time24.split(':').map(Number);
+  if (isNaN(hours) || isNaN(minutes)) return '';
+  const period = hours >= 12 ? 'PM' : 'AM';
+  const hours12 = hours % 12 || 12;
+  return `${hours12}:${minutes.toString().padStart(2, '0')} ${period}`;
+};
 
   const generatePDFInvoice = () => {
     // Create invoice content that matches exactly what's shown in Invoice Preview
@@ -537,7 +547,9 @@ export const EventDialog: React.FC<EventDialogProps> = ({
               <p><span class="font-medium">Event:</span> ${formData.title}</p>
               <p><span class="font-medium">Date:</span> ${new Date(formData.date + 'T00:00:00').toLocaleDateString()}</p>
               <p><span class="font-medium">Time:</span> ${formatTo12Hour(formData.startTime)} - ${formatTo12Hour(formData.endTime)}</p>
-              <p><span class="font-medium">Venue:</span> ${venues.find(v => v.id === formData.venueId)?.name || 'N/A'}</p>
+              <p>
+                <span class="font-medium">Venue:</span> ${venues.find(v => v.id.toString() === (formData.venueId || formData.venue).toString())?.name || formData.venue}
+              </p>
             </div>
           </div>
         </div>
@@ -1688,8 +1700,16 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                       <div className="text-gray-700">
                         <p><span className="font-medium">Event:</span> {formData.title}</p>
                         <p><span className="font-medium">Date:</span> {new Date(formData.date).toLocaleDateString()}</p>
-                        <p><span className="font-medium">Time:</span> {formatTo12Hour(formData.startTime)} - {formatTo12Hour(formData.endTime)}</p>
-                        <p><span className="font-medium">Venue:</span> {venues.find(v => v.id === formData.venueId)?.name}</p>
+                        {/* <p><span className="font-medium">Time:</span> {formatTo12Hour(formData.startTime)} - {formatTo12Hour(formData.endTime)}</p> */}
+                        <p><span className="font-medium">Time: </span>{
+                          formData.startTime && formData.endTime
+                            ? `${formatTo12Hour(formData.startTime)} - ${formatTo12Hour(formData.endTime)}`
+                            : 'Loading...'
+                        }</p>
+                        <p>
+                          <span className="font-medium">Venue:</span>{' '}
+                          {venues.find(v => v.id.toString() === (formData.venueId || formData.venue).toString())?.name || formData.venue}
+                        </p>
                       </div>
                     </div>
                   </div>
@@ -1764,11 +1784,12 @@ export const EventDialog: React.FC<EventDialogProps> = ({
                           <span>${formData.pricing!.taxAmount.toFixed(2)}</span>
                         </div>
                       )}
+                      
                       <div className="border-t-2 border-gray-400 pt-3 flex justify-between text-xl font-bold">
                         <span>Final Total:</span>
                         <span className="text-green-600">${formData.pricing!.total.toFixed(2)}</span>
                       </div>
-                      
+                       
                       {/* Deposit Information in Invoice Preview */}
                       {formData.pricing!.deposits.length > 0 && (
                         <div className="border-t border-gray-300 pt-3 mt-3">

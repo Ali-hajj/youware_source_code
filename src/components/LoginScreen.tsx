@@ -263,7 +263,7 @@ export const LoginScreen: React.FC = () => {
           <div className="pt-4 border-t border-slate-200 space-y-3">
               {mode === 'login' && (
                 <>
-                  <button
+                  {/* <button
                     onClick={() => {
                       setMode('signup');
                       setLocalError(null);
@@ -272,8 +272,8 @@ export const LoginScreen: React.FC = () => {
                     className="w-full text-sm text-slate-600 hover:text-amber-600 font-medium transition-colors"
                   >
                     Don't have an account? Sign up
-                  </button>
-                  <button
+                  </button> */}
+                  {/* <button
                     onClick={() => {
                       setMode('reset');
                       setLocalError(null);
@@ -283,7 +283,7 @@ export const LoginScreen: React.FC = () => {
                   >
                     <Mail className="h-4 w-4" />
                     Forgot your password?
-                  </button>
+                  </button> */}
                   {bypassEnabled && (
                     <button
                       onClick={() => {
@@ -305,7 +305,7 @@ export const LoginScreen: React.FC = () => {
                 </>
               )}
 
-              {(mode === 'signup' || mode === 'reset') && (
+              {(mode === 'reset') && (
                 <button
                   onClick={() => {
                     setMode('login');

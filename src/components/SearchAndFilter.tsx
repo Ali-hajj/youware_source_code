@@ -1,10 +1,15 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { Search, Filter } from 'lucide-react';
 import { useEventStore } from '../store/eventStore';
 import { VenueType, EventStatus, PaymentStatus } from '../types';
 
 export const SearchAndFilter: React.FC = () => {
-  const { filters, setFilters } = useEventStore();
+  const { filters, setFilters, venues, loadVenuesFromDatabase } = useEventStore();
+
+  // Load venues once on component mount
+  useEffect(() => {
+    loadVenuesFromDatabase();
+  }, [loadVenuesFromDatabase]);
 
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFilters({ searchQuery: e.target.value });
@@ -27,7 +32,7 @@ export const SearchAndFilter: React.FC = () => {
       venue: undefined,
       status: undefined,
       paymentStatus: undefined,
-      searchQuery: ''
+      searchQuery: '',
     });
   };
 
@@ -53,8 +58,9 @@ export const SearchAndFilter: React.FC = () => {
             type="button"
             className="absolute right-2 top-1/2 transform -translate-y-1/2 px-3 py-1 bg-amber-600 text-white text-sm rounded-md hover:bg-amber-700 transition-colors"
             onClick={() => {
-              // Search is already triggered by onChange, this button provides visual feedback
-              const input = document.querySelector('input[placeholder*="Search events"]') as HTMLInputElement;
+              const input = document.querySelector(
+                'input[placeholder*="Search events"]'
+              ) as HTMLInputElement;
               if (input) input.focus();
             }}
           >
@@ -72,13 +78,15 @@ export const SearchAndFilter: React.FC = () => {
           {/* Venue Filter */}
           <select
             value={filters.venue || ''}
-            onChange={(e) => handleVenueFilter(e.target.value as VenueType || undefined)}
+            onChange={(e) => handleVenueFilter(e.target.value || undefined)}
             className="px-3 py-1.5 border border-slate-300 rounded-md text-sm focus:ring-2 focus:ring-amber-500 focus:border-transparent shadow-sm"
           >
             <option value="">All Venues</option>
-            <option value="restaurant">Restaurant</option>
-            <option value="bar">Bar</option>
-            <option value="banquet">Banquet</option>
+            {venues.map((venue) => (
+              <option key={venue.id} value={venue.type}>
+                {venue.name}
+              </option>
+            ))}
           </select>
 
           {/* Status Filter */}

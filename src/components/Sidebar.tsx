@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Plus, Calendar, Users, DollarSign, CheckCircle, Clock, XCircle, Archive, Shield } from 'lucide-react';
 import { addMonths, subMonths } from 'date-fns';
 import { useEventStore } from '../store/eventStore';
@@ -11,9 +11,18 @@ interface SidebarProps {
   onNavigateToHistory?: (statusFilter?: EventStatus, paymentFilter?: PaymentStatus) => void;
   currentUser?: AppUser | null;
   onLogout: () => void;
+  onNavigateToTab?: (tab: 'calendar' | 'history' | 'daily') => void; // new
 }
 
-export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDateChange, onNavigateToHistory, currentUser, onLogout }) => {
+export const Sidebar: React.FC<SidebarProps> = ({
+  onNewEvent,
+  currentDate,
+  onDateChange,
+  onNavigateToHistory,
+  currentUser,
+  onLogout,
+  onNavigateToTab // <--- add this
+}) => {
   const activeUser = currentUser ?? {
     id: 'GUEST',
     username: 'guest',
@@ -28,6 +37,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
   const roleLabel = activeUser.role ? activeUser.role.toUpperCase() : 'GUEST';
   const { getEventStats, loadVenuesFromDatabase, filters, setFilters, settings, venues, events } = useEventStore();
   const stats = getEventStats();
+  
   useEffect(() => {
       loadVenuesFromDatabase(); 
   }, [loadVenuesFromDatabase]);
@@ -41,7 +51,7 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
       : addMonths(currentDate, 1);
     onDateChange(newDate);
   };
-  
+
   return (
     <div className="w-80 min-w-80 bg-gradient-to-b from-slate-800 to-slate-900 border-r border-slate-700 min-h-0 flex flex-col shadow-xl flex-shrink-0 overflow-hidden">
       {/* Header - Fixed */}
@@ -67,9 +77,6 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
             <div className="font-medium text-slate-200">Signed in as</div>
             <div className={`font-semibold ${activeUser.id === 'BOOTSTRAP' ? 'text-amber-300' : 'text-amber-300'}`}>
               {activeUser.id === 'BOOTSTRAP' ? 'Bootstrap Session' : `${activeUser.firstName} ${activeUser.lastName}`}
-            </div>
-            <div className="text-slate-400 font-mono text-[11px]">
-              {/* {activeUser.id} */}
             </div>
             <p className="mt-2 text-slate-400">
               Manage bookings, license verification, and performance insights from one control center.
@@ -117,16 +124,16 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
             </button>
           </div>
         </div>
-        
         <button
-          onClick={() => onDateChange(new Date())}
+          onClick={() => {
+            onDateChange(new Date());
+            onNavigateToTab?.('calendar'); // ✅ switch to calendar tab
+          }}
           className="text-sm font-medium hover:opacity-80 transition-opacity"
           style={{ color: settings.themeColor }}
         >
           Go to Today
         </button>
-
-
       </div>
 
       {/* Scrollable Content Area - Takes remaining space */}
@@ -152,11 +159,13 @@ export const Sidebar: React.FC<SidebarProps> = ({ onNewEvent, currentDate, onDat
             >
               <span>All Venues</span>
             </button>
-            
             {venues.map((venue) => (
               <button
                 key={venue.id}
-                onClick={() => handleVenueFilter(venue.id as VenueType)}
+                onClick={() => {
+                  handleVenueFilter(venue.type as VenueType); // existing filter logic
+                  onNavigateToTab?.('calendar');             // ✅ use destructured variable
+                }}
                 className={`
                   w-full text-left px-3 py-2 rounded-lg transition-colors flex items-center justify-between
                   ${filters.venue === venue.id 

@@ -557,33 +557,76 @@ saveSettingsToDatabase: async (updatedSettings: Partial<AppSettings>) => {
   },
 
   getFilteredEvents: () => {
-    const { events, filters } = get();
-    return events.filter((event) => {
-      if (filters.venue && event.venue !== filters.venue && event['venue_id'] !== filters.venue) {
-        return false;
-      }
-      if (filters.status && event.status !== filters.status) {
-        return false;
-      }
-      if (filters['payment_status'] && event['payment_status'] !== filters['payment_status']) {
-        return false;
-      }
-      if (filters.searchQuery) {
-        const query = filters.searchQuery.toLowerCase();
-        const normalizePhone = (phone: string) => phone.replace(/[\s\-\(\)\.]/g, '');
-        const normalizedQuery = normalizePhone(query);
-        const normalizedEventPhone = normalizePhone(event.contact.phone);
-        return (
-          event.title.toLowerCase().includes(query) ||
-          event.contact.name.toLowerCase().includes(query) ||
-          event.contact.phone.includes(query) ||
-          normalizedEventPhone.includes(normalizedQuery) ||
-          event.contact.email.toLowerCase().includes(query)
-        );
-      }
-      return true;
-    });
-  },
+  const { events, filters, venues } = get();
+
+  return events.filter((event) => {
+    // Venue filter
+    if (filters.venue) {
+      const venueTypeMatches =
+        event['venue_id'] === filters.venue || // match venue_id
+        (venues.find(v => v.id.toString() === event['venue_id'] || v.name === event['venue'])?.type === filters.venue);
+
+      if (!venueTypeMatches) return false;
+    }
+    // Status filter
+    if (filters.status && event.status !== filters.status) {
+      return false;
+    }
+
+    // Payment status filter
+    if (filters['payment_status'] && event['payment_status'] !== filters['payment_status']) {
+      return false;
+    }
+
+    // Search query filter
+    if (filters.searchQuery) {
+      const query = filters.searchQuery.toLowerCase();
+      const normalizePhone = (phone: string) => phone.replace(/[\s\-\(\)\.]/g, '');
+      const normalizedQuery = normalizePhone(query);
+      const normalizedEventPhone = normalizePhone(event.contact.phone);
+
+      const matchesSearch =
+        event.title.toLowerCase().includes(query) ||
+        event.contact.name.toLowerCase().includes(query) ||
+        event.contact.phone.includes(query) ||
+        normalizedEventPhone.includes(normalizedQuery) ||
+        event.contact.email.toLowerCase().includes(query);
+
+      if (!matchesSearch) return false;
+    }
+
+    return true;
+  });
+},
+
+  // getFilteredEvents: () => {
+  //   const { events, filters } = get();
+  //   return events.filter((event) => {
+  //     if (filters.venue && event.venue !== filters.venue && event['venue_id'] !== filters.venue) {
+  //       return false;
+  //     }
+  //     if (filters.status && event.status !== filters.status) {
+  //       return false;
+  //     }
+  //     if (filters['payment_status'] && event['payment_status'] !== filters['payment_status']) {
+  //       return false;
+  //     }
+  //     if (filters.searchQuery) {
+  //       const query = filters.searchQuery.toLowerCase();
+  //       const normalizePhone = (phone: string) => phone.replace(/[\s\-\(\)\.]/g, '');
+  //       const normalizedQuery = normalizePhone(query);
+  //       const normalizedEventPhone = normalizePhone(event.contact.phone);
+  //       return (
+  //         event.title.toLowerCase().includes(query) ||
+  //         event.contact.name.toLowerCase().includes(query) ||
+  //         event.contact.phone.includes(query) ||
+  //         normalizedEventPhone.includes(normalizedQuery) ||
+  //         event.contact.email.toLowerCase().includes(query)
+  //       );
+  //     }
+  //     return true;
+  //   });
+  // },
 
   getEventStats: () => {
     const events = get().getFilteredEvents();
