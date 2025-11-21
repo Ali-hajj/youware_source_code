@@ -730,7 +730,7 @@ const handleDeleteVenue = async (id: string) => {
                 <KeyRound className="h-4 w-4" />
                 Licenses
               </button>
-              <button
+              {/* <button
                 onClick={() => setActiveTab('database')}
                 className={`w-full text-left px-3 py-2 rounded-md text-sm transition-colors flex items-center gap-2 ${
                   activeTab === 'database' 
@@ -740,7 +740,7 @@ const handleDeleteVenue = async (id: string) => {
               >
                 <Building className="h-4 w-4" />
                 Database
-              </button>
+              </button> */}
             </div>
           </div>
 

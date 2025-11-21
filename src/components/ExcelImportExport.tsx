@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Download, Upload, FileSpreadsheet, AlertCircle } from 'lucide-react';
 import { useEventStore } from '../store/eventStore';
+import { API_ENDPOINTS, apiCall } from '../config/api';
 
 export const ExcelImportExport: React.FC = () => {
   const [isExporting, setIsExporting] = useState(false);
@@ -46,7 +47,7 @@ export const ExcelImportExport: React.FC = () => {
       console.log('📦 Starting CSV export...');
       console.log('📍 Target URL:', exportUrl);
       
-      const response = await fetch(exportUrl, {
+      const response = await apiCall(exportUrl, {
         method: 'GET',
         headers: {
           Accept: 'text/csv,application/json,*/*',

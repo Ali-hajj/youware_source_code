@@ -2,7 +2,7 @@
 
 const API_CONFIG = {
   production: {
-    baseURL: "https://stuntec.org/Events/api",
+    baseURL: "http://localhost:8000/Events/api",
   },
   staging: {
     baseURL: "https://staging.stuntec.org/api",
@@ -20,6 +20,7 @@ const API_ENDPOINTS = {
   userById: (id: string | number) => `users/${id}`,
   eventsById: (id: string | number) => `events/${id}`,
   eventsBulk: '/events/bulk',
+  eventsExport: "events/export", 
   authLogin: "auth/login",
   authLogout: "auth/logout",
   authSignup: "auth/signup",

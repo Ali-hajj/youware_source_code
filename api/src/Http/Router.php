@@ -37,6 +37,7 @@ final class Router
             $this->middleware([AuthMiddleware::class], function (): void {
                 $this->get('/auth/me', [AuthController::class, 'me']);
                 $this->get('/events', [EventController::class, 'index']);
+                $this->get('/events/export', [EventController::class, 'export']);
                 $this->get('/events/{id}', [EventController::class, 'show']);
                 $this->post('/events', [EventController::class, 'store']);
                 $this->put('/events/{id}', [EventController::class, 'update']);

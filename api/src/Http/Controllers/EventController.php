@@ -56,6 +56,73 @@ final class EventController
 
         return JsonResponse::success(['event' => $event], 201);
     }
+    public function export(array $params): void
+    {
+        // Fetch all events
+        $records = $this->events->allEvents();
+
+        if (empty($records)) {
+            // No events found
+            header('Content-Type: application/json');
+            echo json_encode([
+                'success' => false,
+                'message' => 'No events found',
+            ]);
+            exit;
+        }
+
+        // Convert any array fields to JSON strings
+        foreach ($records as &$record) {
+            foreach ($record as $key => $value) {
+                if (is_array($value)) {
+                    $record[$key] = json_encode($value);
+                }
+            }
+            // Remove venue_name column
+            unset($record['venue_name']);
+        }
+
+        // Set headers for CSV download
+        header('Content-Type: text/csv; charset=utf-8');
+        header('Content-Disposition: attachment; filename="events_export_' . date('Y-m-d') . '.csv"');
+
+        // Open output stream
+        $output = fopen('php://output', 'w');
+
+        // Write CSV header (column names)
+        fputcsv($output, array_keys($records[0]));
+
+        // Write each event row
+        foreach ($records as $row) {
+            fputcsv($output, $row);
+        }
+
+        // Close output stream
+        fclose($output);
+        exit;
+    }
+
+    private function toCsv(array $records): string
+    {
+        if (empty($records)) {
+            return "No events found\n";
+        }
+
+        ob_start();
+        $output = fopen('php://output', 'w');
+
+        // CSV header
+        fputcsv($output, array_keys($records[0]));
+
+        // CSV rows
+        foreach ($records as $row) {
+            fputcsv($output, $row);
+        }
+
+        fclose($output);
+
+        return ob_get_clean();
+    }
 
     public function update(array $params): array
     {
